@@ -5,7 +5,7 @@ import ButtonContext from "@/components/buttonContext";
 import Content from "@/components/content";
 import PokeballRotation from "@/components/pokeballRotation";
 import { Bird } from "@/lib/types";
-import Image from "next/image";
+// import Image from "next/image";
 import { useState } from "react";
 
 export default function Home() {
@@ -28,7 +28,7 @@ export default function Home() {
         index % 2 === 0 ? bird : birds_default2[index]
     );
 
-    console.log(birds_default);
+    // console.log(birds_default);
 
     const degrees_per_item = 18; // 360 / 20
 

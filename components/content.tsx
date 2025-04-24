@@ -1,7 +1,7 @@
 "use client";
 
 import { Bird } from "@/lib/types";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Content({ birds, setSelectedBird, selectedBird }: { birds: Bird[], setSelectedBird: (bird: Bird) => void, selectedBird: Bird }) {
 

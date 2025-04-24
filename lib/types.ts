@@ -1,11 +1,11 @@
 
 
 export interface Bird {
-    id: Number;
+    id: number;
     name: string;
     scientificName: [string, string];
     family: string;
-    seen?: Number;
+    seen?: number;
     location?: string[];
     habitat?: string;
     description?: string;

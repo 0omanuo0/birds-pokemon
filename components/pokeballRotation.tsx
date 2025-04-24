@@ -7,7 +7,7 @@ export default function PokeballRotation(
     const [pokRotation, setPokRotation] = useState(startScroll);
     const [isRotating, setIsRotating] = useState(false);
     const [startCords, setStartCoords] = useState({ x: 0, y: 0 });
-    const [velocity, setVelocity] = useState(0);
+    const [, setVelocity] = useState(0);
     const [inertiaInterval, setInertiaInterval] = useState<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
