@@ -65,7 +65,7 @@ body {
     height: 100%;
     pointer-events: none;
     /* No bloquea clics ni interacciones */
-    opacity: 0.2;
+    opacity: 0.15;
     /* Ajusta la intensidad del noise */
 
     /* Se aplica el filtro de ruido */
@@ -115,6 +115,4 @@ body {
       opacity: 0;
     }
   } */
-
-
 }
