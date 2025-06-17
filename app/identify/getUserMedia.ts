@@ -5,13 +5,13 @@ export function getGetUserMedia(): ((constraints: MediaStreamConstraints) => Pro
     ) {
         return navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
     }
-    // @ts-ignore – legacy prefixes
+    
     const legacy =
-        // @ts-ignore
+        // @ts-expect-error: webkit-prefixed getUserMedia for older browsers
         navigator.getUserMedia ||
-        // @ts-ignore
+        // @ts-expect-error: webkit-prefixed getUserMedia for older browsers
         navigator.webkitGetUserMedia ||
-        // @ts-ignore
+        // @ts-expect-error: moz-prefixed getUserMedia for older browsers
         navigator.mozGetUserMedia;
     if (legacy) {
         // wrap the callback API in a Promise

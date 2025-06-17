@@ -27,8 +27,8 @@ export default function BirdCard(
                     const maxPixels = Math.floor(canvas.width / desiredPixelSize);
 
                     // Maintain aspect ratio
-                    let targetWidth = Math.min(image.width, maxPixels);
-                    let targetHeight = Math.round((image.height / image.width) * targetWidth);
+                    const targetWidth = Math.min(image.width, maxPixels);
+                    const targetHeight = Math.round((image.height / image.width) * targetWidth);
 
                     tempCanvas.width = targetWidth;
                     tempCanvas.height = targetHeight;

@@ -61,7 +61,7 @@ export default function Dialog({ showDialog, setShowDialog, result }: {
                             navigator.geolocation.getCurrentPosition((position) => {
                                 setLocation([position.coords.latitude, position.coords.longitude]);
                                 setLoadingMap(false);
-                                showMap ? setShowMap(false) : setShowMap(true);
+                                setShowMap(!showMap);
                             }, (error) => { setLocation(null); setShowMap(true); });
                         }}
                         className="h-10 w-10 flex font-pokemon relative">
