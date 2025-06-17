@@ -7,7 +7,7 @@ import BirdCard from "./birdCard";
 import HeadCard from "./headCard";
 
 export default function Content(
-    { birds, birdsSeen, setSelectedBird, selectedBird, known_bird }: 
+    { birds, birdsSeen, setSelectedBird, selectedBird, known_bird }:
         { birds: Bird[], birdsSeen: any[], setSelectedBird: (bird: Bird) => void, selectedBird: Bird, known_bird: boolean[] }
 ) {
     // array of boolean values to check if the bird is known comparing the id of the bird with the id of the birds seen
@@ -29,9 +29,12 @@ export default function Content(
     }, []);
 
     useEffect(() => {
-        const birdSeen = birdsSeen.find((bird) => bird.bird_id === (selectedBird as any).bird_id);
-        if (birdSeen) {
-            setSelectedBirdSeenD(birdSeen);
+        const birdId = (selectedBird as any).bird_id;
+        // collect all sightings of this bird…
+        const sightings = birdsSeen.filter(b => b.bird_id === birdId);
+        if (sightings.length > 0) {
+            // …and pick the last one
+            setSelectedBirdSeenD(sightings[sightings.length - 1]);
         } else {
             setSelectedBirdSeenD(undefined);
         }
@@ -73,7 +76,7 @@ export default function Content(
         <div
             className="w-full h-full bg-neutral-700 rounded-sm relative overflow-hidden noise-effect shining"
         >
-            <HeadCard selectedBird={{...selectedBird, ...selectedBirdSeenD}} known_bird={known_bird[selectedBird.id - 1]} />
+            <HeadCard selectedBird={{ ...selectedBird, ...selectedBirdSeenD }} known_bird={known_bird[selectedBird.id - 1]} />
 
             <div className="flex flex-row w-full h-[50dvh] md:h-full relative">
                 <BirdCard

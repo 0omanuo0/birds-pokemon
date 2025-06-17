@@ -50,7 +50,7 @@ export default async function Home() {
     });
     // console.log(birds_data);
     return (
-        <div className='h-[100dvh] md:py-4 xl:py-12 w-full'
+        <div className='h-[100dvh] md:py-4 2xl:py-8 w-full'
             style={{
                 backgroundImage: "linear-gradient(45deg,#0000 10%, #222 60%)",
             }}

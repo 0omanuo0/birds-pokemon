@@ -15,16 +15,23 @@ export default function BirdCard(
         const ctx = canvas.getContext("2d");
         if (ctx) {
             const image = new Image();
-            image.src = selectedBirdSeenD?.image || "img/abubilla.jpg";
+            console.log("selectedBirdSeenD", selectedBirdSeenD);
+            image.src = selectedBirdSeenD?.photo_url || "img/abubilla.jpg";
             image.onload = () => {
                 const tempCanvas = document.createElement("canvas");
                 const tempCtx = tempCanvas.getContext("2d");
 
                 if (tempCtx) {
-                    // Set temporary canvas size to a lower resolution
-                    const pixelArtScale = 0.1; // Reduce resolution to 20%
-                    tempCanvas.width = image.width * pixelArtScale;
-                    tempCanvas.height = image.height * pixelArtScale;
+                    // Calculate the desired pixel size for the pixel-art effect
+                    const desiredPixelSize = 2;
+                    const maxPixels = Math.floor(canvas.width / desiredPixelSize);
+
+                    // Maintain aspect ratio
+                    let targetWidth = Math.min(image.width, maxPixels);
+                    let targetHeight = Math.round((image.height / image.width) * targetWidth);
+
+                    tempCanvas.width = targetWidth;
+                    tempCanvas.height = targetHeight;
 
                     // Draw the image at reduced resolution
                     tempCtx.drawImage(image, 0, 0, tempCanvas.width, tempCanvas.height);
@@ -39,11 +46,12 @@ export default function BirdCard(
                 }
             }
         }
-    }, [selectedBird]);
+    }, [selectedBird, selectedBirdSeenD]);
 
 
     return (
         <div className="m-2 mt-4">
+            {/* {JSON.stringify(selectedBirdSeenD)} */}
             <div className="bg-main-image px-2 pt-5 pb-2">
                 {
                     known_bird
@@ -54,6 +62,7 @@ export default function BirdCard(
                             <span className="font-pokemon text-black text-6xl">?</span>
                         </div>
                 }
+
 
             </div>
             <div

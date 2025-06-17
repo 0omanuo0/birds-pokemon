@@ -1,0 +1,34 @@
+import { ImageAddSvg } from "../imageSvg";
+import CameraSelector from "./cameraSelector";
+
+
+
+
+export default function CameraComponent(
+    {
+        videoRef,
+        streamRef,
+    }: {
+        videoRef: React.RefObject<HTMLVideoElement | null>;
+        streamRef: React.RefObject<MediaStream | null>;
+    }) {
+    return (
+        <div style={{ position: 'relative', height:"100%", width: "100%" }} >
+            <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                width={320}
+                height={320}
+                style={{ borderRadius: 8, objectFit: 'cover', width: "100%", height: "100%" }}
+            />
+            <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-black to-transparent flex items-end justify-center">
+                <CameraSelector
+                    videoRef={videoRef}
+                    streamRef={streamRef}
+                />
+            </div>
+        </div >
+    );
+}

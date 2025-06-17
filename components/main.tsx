@@ -5,6 +5,9 @@ import PokeballRotation from "@/components/pokeballRotation";
 import { Bird } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import ContextMenu from "./contextMenu";
+import LateralLeft from "./nav/lateralLeft";
+import LateralRight from "./nav/lateralRight";
+import { addSvg, CameraSvg, homeSvg, searchSvg, userSvg } from "./imageSvg";
 
 export default function Main({ birds_default, birds_seen }: { birds_default: Bird[], birds_seen: any[] }) {
 
@@ -16,7 +19,7 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
 
     const contextMenuRef = useRef<any>(null);
 
-    const [isFiltered, setIsFiltered] = useState(false);
+    const [_, setIsFiltered] = useState(false);
     const [birdsFiltered, setBirdsFiltered] = useState(birds_default);
     const [known_bird, setKnownBird] = useState<boolean[]>([]);
 
@@ -29,6 +32,8 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
         <main
             className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
         >
+            <LateralLeft target='/identify' setTop="65%">{CameraSvg}</LateralLeft>
+            <LateralRight target='/add' setTop="65%">{addSvg}</LateralRight>
             <section className="relative w-full h-fit md:h-[500px]">
                 <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
                     <svg width="0" height="0" id="noise">
@@ -49,6 +54,32 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
                         known_bird={known_bird}
                     />
                 </div>
+                <div className="absolute bottom-0 w-full px-10 flex items-center justify-center gap-0">
+                    <input
+                        style={{
+                            filter: "drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3))",
+                            clipPath: "polygon(5% 0%, 100% 0%, 100% 50%, 100% 100%, 5% 100%, 0% 50%)",
+                            maskImage: "polygon(5% 0%, 100% 0%, 100% 50%, 100% 100%, 5% 100%, 0% 50%)",
+                            backgroundImage: "linear-gradient(0deg, #0000 10%, #fff2 60%, #0000 100%)"
+                        }}
+                        placeholder="Search birds..."
+                        className=" px-4 shadow-lg bg-neutral-700 w-52 h-10 translate-y-[calc(50%-6px)] border-2 border-y-neutral-800/50 border-x-transparent outline-none"
+                    />
+                    <div className="h-10 w-[2px] bg-neutral-700 border-y-2 border-neutral-800/60 translate-y-[calc(50%-6px)]"></div>
+                    <button
+                        style={{
+                            filter: "drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3))",
+                            clipPath: "polygon(0% 0%, 80% 0%, 100% 50%, 80% 100%, 0% 100%, 0% 50%)",
+                            maskImage: "polygon(0% 0%, 80% 0%, 100% 50%, 80% 100%, 0% 100%, 0% 50%)",
+                            backgroundImage: "linear-gradient(0deg, #0000 10%, #fff2 60%, #0000 100%)",
+                        }}
+                        className=" shadow-lg bg-neutral-700 w-18 h-10 translate-y-[calc(50%-6px)] border-2 border-y-yellow-400 border-x-transparent flex items-center justify-center"
+                    >
+                        <span className="h-6 w-8 pr-2">
+                            {searchSvg}
+                        </span>
+                    </button>
+                </div>
             </section>
             <PokeballRotation
                 onWheel={absoluteRotation => {
@@ -62,35 +93,57 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
                 startScroll={0}
                 endScroll={(birdsFiltered.length - 1) * degrees_per_item}
                 onPress={() =>
-                    setIsFiltered((prev) => {
+                    setIsFiltered(prev => {
                         if (prev) {
+                            // → going _back_ to un-filtered mode
                             setBirdsFiltered(birds_default);
-                            setKnownBird(birds_default.map((bird) => birds_seen.some((birdSeen) => birdSeen.bird_id === bird.id)));
+                            // mark each bird “known” if it ever appears in birds_seen
+                            setKnownBird(
+                                birds_default.map(b =>
+                                    birds_seen.some(bs => bs.bird_id === b.id)
+                                )
+                            );
+                        } else {
+                            // → going _into_ filtered mode: only show birds you've seen,
+                            //    and for each id pick the *last* record from birds_seen
+                            const lastSeenById = new Map<number, typeof birds_seen[0]>();
+                            birds_seen.forEach(record => {
+                                // each successive record with the same bird_id will overwrite,
+                                // so at the end Map.get(bird_id) is the last one
+                                lastSeenById.set(record.bird_id, record);
+                            });
+
+                            const filtered = birds_default
+                                .filter(b => lastSeenById.has(b.id))
+                                .map((b, idx) => {
+                                    const seenRecord = lastSeenById.get(b.id)!;
+                                    return {
+                                        // keep your default bird fields...
+                                        ...b,
+                                        // merge in any fields you want from the last-seen record
+                                        ...seenRecord,
+                                        // re-index for display
+                                        id: idx + 1,
+                                        bird_id: b.id,
+                                    };
+                                });
+
+                            console.log("Filtered birds:", filtered);
+
+                            setBirdsFiltered(filtered);
+                            // all of the filtered list are “known”
+                            setKnownBird(filtered.map(() => true));
                         }
-                        else
-                        {
-                            
-                            setBirdsFiltered(
-                                birds_default
-                                    .filter((bird) => birds_seen.find((birdSeen) => birdSeen.bird_id === bird.id))
-                                    .map((bird, index) => ({
-                                        ...bird,
-                                        id: index + 1,
-                                        bird_id: bird.id
-                                    }))
-                            )
-                            setKnownBird(birds_default.map((bird) => true));
-                        }
-                        
+
                         return !prev;
                     })
                 }
-                onLongPress={() =>
-                    contextMenuRef.current.toggleContextMenu()
+                onLongPress={() => { }
+                    // contextMenuRef.current.toggleContextMenu()
                 }
 
             />
-            <ContextMenu ref={contextMenuRef} />
+            {/* <ContextMenu ref={contextMenuRef} /> */}
 
         </main>
     );

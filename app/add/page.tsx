@@ -1,7 +1,7 @@
 "use client";
 
 import ContextMenu from "@/components/contextMenu";
-import { ClockSvg, ImageSvg, PinSvg } from "@/components/imageSvg";
+import { ClockSvg, ImageAddSvg, PinSvg } from "@/components/imageSvg";
 import PokeballRotation from "@/components/pokeballRotation";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
@@ -14,7 +14,7 @@ export default function Add() {
     const router = useRouter();
 
     return (
-        <div className='h-[100dvh] md:py-4 xl:py-12 w-full'
+        <div className='h-[100dvh] md:py-4 2xl:py-12 w-full'
             style={{
                 backgroundImage: "linear-gradient(45deg,#0000 10%, #222 60%)",
             }}
@@ -24,7 +24,7 @@ export default function Add() {
                 <main
                     className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
                 >
-                    <section className="relative w-full h-fit md:h-[550px]">
+                    <section className="relative w-full h-fit md:h-[450px]">
                         <div className="h-full w-full flex flex-col justify-center items-start bg-neutral-900 px-3 pb-3">
                             <svg width="0" height="0" id="noise">
                                 <defs>
@@ -68,7 +68,7 @@ export default function Add() {
                                                 <canvas className="absolute top-2 left-2 z-40 h-40 w-40 bg-neutral-200"></canvas>
                                                 <canvas className="absolute top-4 left-4 z-30 h-40 w-40 bg-neutral-300"></canvas>
                                                 <canvas className="absolute top-6 left-6 z-20 h-40 w-40 bg-neutral-400"></canvas>
-                                                <button className="absolute bottom-12 left-1 w-10 h-8 px-2 py-1 z-[99] bg-red-400 border-2 border-neutral-700/70">{ImageSvg}</button>
+                                                <button className="absolute bottom-12 left-1 w-10 h-8 px-2 py-1 z-[99] bg-red-400 border-2 border-neutral-700/70">{ImageAddSvg}</button>
                                             </div>
                                             <div className="flex flex-col gap-2 items-center justify-center h-full p-2">
                                                 <img src={"icons/pokeball.png"} className="h-[37px] w-10 saturate-50" style={{ imageRendering: "pixelated" }}/>
@@ -94,7 +94,7 @@ export default function Add() {
                                     maskImage: "polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%)",
                                     backgroundImage: "linear-gradient(0deg, #0000 10%, #fff2 60%, #0000 100%)"
                                 }}
-                                placeholder="Add pokemon"
+                                placeholder="Añadir Pokémon"
                                 className=" px-4 shadow-lg bg-neutral-700 w-52 h-10 translate-y-[calc(50%-6px)] border-2 border-y-neutral-800/50 border-x-transparent"
                             />
                             <button

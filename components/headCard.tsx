@@ -4,7 +4,7 @@
 export default function HeadCard(
     { selectedBird, known_bird }: { selectedBird: any, known_bird: any }
 ) {
-    console.log("selectedBird", selectedBird);
+    // console.log("selectedBird", selectedBird);
     return (
         <div className="bg-white border-b-2 border-neutral-900 after:border-b-1 after:border-neutral-400 after:content-[''] after:block after:w-full">
             <div style={{ filter: "drop-shadow(0px 3px 1px #0006)" }}>
