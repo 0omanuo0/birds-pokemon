@@ -71,11 +71,7 @@ export default function Content(
 
 
     return (
-
-
-        <div
-            className="w-full h-full bg-neutral-700 rounded-sm relative overflow-hidden noise-effect shining"
-        >
+        <>
             <HeadCard selectedBird={{ ...selectedBird, ...selectedBirdSeenD }} known_bird={known_bird[selectedBird.id - 1]} />
 
             <div className="flex flex-row w-full h-[50dvh] md:h-full relative">
@@ -114,7 +110,6 @@ export default function Content(
                 className="absolute inset-0 pointer-events-none rounded-sm"
                 style={{ boxShadow: "inset 0 0 6px 1px #171717" }}
             />
-        </div>
-
+        </>
     )
 }

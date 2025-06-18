@@ -9,7 +9,7 @@ export default function BirdCardScroll(
     return (
         <li
             id={"bird-item-" + bird.id.toString()}
-            className={`space-x-2 px-4 overflow-hidden py-1 bg-neutral-600 rounded-l-sm  h-[32px] select-none`}
+            className={`space-x-2 px-4 overflow-hidden py-1 -mr-2 bg-neutral-600 pixel-corners-4  h-[32px] select-none`}
             key={bird.id.toString()}
             onClick={() => setSelectedBird(bird)}
         >
@@ -17,12 +17,12 @@ export default function BirdCardScroll(
                 style={{
                     maxWidth: "70%"
                 }}
-                className="text-base font-pokemon">{known_bird ? bird.name : "???"}</span>
+                className="text-base font-pokemon overflow-ellipsis">{known_bird ? bird.name : "???"}</span>
             <span
                 style={{
-                    maxWidth: "30%"
+                    maxWidth: "60%"
                 }}
-                className="text-xs text-neutral-400 font-pokemon">{bird.scientificName || "???"}</span>
+                className="text-xs text-neutral-400 font-pokemon overflow-ellipsis">{bird.scientificName || "???"}</span>
         </li>
     )
 }
