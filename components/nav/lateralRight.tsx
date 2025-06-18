@@ -4,7 +4,7 @@ import { arrowBoxLeftSvg, CameraSvg } from '../imageSvg';
 import { useRouter } from 'next/navigation';
 
 
-export default function LateralRight({children, target, setTop}: { children?: React.JSX.Element, target?: string, setTop? :  string | number  }) {
+export default function LateralRight({children, target, setTop, onAction}: { children?: React.JSX.Element, target?: string, setTop? :  string | number , onAction?: () => void }) {
     const [offsetRight, setOffsetRight] = useState(0);
     const draggingRef = useRef(false);
     const startXRef = useRef(0);
@@ -69,7 +69,10 @@ export default function LateralRight({children, target, setTop}: { children?: Re
     useEffect(() => {
         // if arrives to 80, navigate to /
         if (offsetRight === -80) {
-            router.push(target || '/');
+            target ? router.push(target ) : onAction?.();
+            setTimeout(() => {
+                setOffsetRight(0); // reset offset after navigation
+            }, 400);
         }
     }, [offsetRight]);
 
@@ -80,7 +83,7 @@ export default function LateralRight({children, target, setTop}: { children?: Re
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => {
                 e.preventDefault()
-                router.push(target || '/');
+                target ? router.push(target) : onAction?.();
             }}
             style={{
                 clipPath: "polygon(20% 0, 100% 0, 100% 100%, 20% 100%, 5% 85%, 5% 15%)",
@@ -92,7 +95,7 @@ export default function LateralRight({children, target, setTop}: { children?: Re
                 background: "linear-gradient(160deg, #e85d63, #c63f44 70%)",
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             }}
-            className='h-[96px] w-[120px] z-50 flex items-center justify-between px-2'
+            className='h-[96px] w-[120px] z-90 flex items-center justify-between px-2'
         >
             {/* Optional decorative border with SVG */}
             <svg

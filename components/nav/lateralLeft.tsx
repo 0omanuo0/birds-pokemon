@@ -92,7 +92,7 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
                 background: "linear-gradient(160deg, #e85d63, #c63f44 70%)",
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             }}
-            className='h-[96px] w-[120px] z-50 flex items-center justify-between px-2'
+            className='h-[96px] w-[120px] z-90 flex items-center justify-between px-2'
         >
             {/* Optional decorative border with SVG */}
             <svg
