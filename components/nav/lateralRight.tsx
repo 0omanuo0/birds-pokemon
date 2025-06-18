@@ -69,7 +69,11 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
     useEffect(() => {
         // if arrives to 80, navigate to /
         if (offsetRight === -80) {
-            target ? router.push(target ) : onAction?.();
+            if (target) {
+                router.push(target);
+            } else if (onAction) {
+                onAction();
+            }
             setTimeout(() => {
                 setOffsetRight(0); // reset offset after navigation
             }, 400);
@@ -83,7 +87,11 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => {
                 e.preventDefault()
-                target ? router.push(target) : onAction?.();
+                if (target) {
+                    router.push(target);
+                } else {
+                    onAction?.();
+                }
             }}
             style={{
                 clipPath: "polygon(20% 0, 100% 0, 100% 100%, 20% 100%, 5% 85%, 5% 15%)",
