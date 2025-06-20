@@ -8,6 +8,12 @@ export async function pushBird(
     location: string = "Unknown",
     timestamp: string = new Date().toISOString()
 ) {
+    console.log("Pushing bird sighting:", {
+        userId,
+        birdId,
+        location,
+        timestamp
+    });
     const sql = neon(process.env.DATABASE_URL || "");
     const img_url = "img/bird_" + birdId + ".jpg"; ////////////// temporal
     try {

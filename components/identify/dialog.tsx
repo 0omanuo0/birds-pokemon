@@ -5,6 +5,7 @@ import { ClockSvg, loaderSvg, PinSvg } from "../imageSvg";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import DateTimePicker from "./datetimePicker";
+import { useUser } from "../userContext";
 
 const MapWithNoSSR = dynamic(() => import('@/components/identify/map'), {
     ssr: false,
@@ -25,6 +26,9 @@ export default function Dialog({ showDialog, setShowDialog, result }: {
     useEffect(() => {
         setSelectedDate(new Date());
     }, [showDialog]);
+
+    const {user} = useUser();
+    console.log("User in dialog:", user);
 
 
     return (
@@ -126,7 +130,7 @@ export default function Dialog({ showDialog, setShowDialog, result }: {
                         className="bg-yellow-400 text-black text-xl tracking-wider pt-2 font-pokemon px-4 py-1 w-30 shadow-md hover:bg-yellow-500 transition-colors cursor-pointer"
                         onClick={() => {
 
-                            pushBird(1, result.bird.id, location ? `${location[0]},${location[1]}` : undefined, selectedDate.toISOString())
+                            pushBird(user?.user_id, result.bird.id, location ? `${location[0]},${location[1]}` : undefined, selectedDate.toISOString())
                                 .then(() => {
 
                                     // upload the canvas image to api/saveImage /////////////// TODO: temporal

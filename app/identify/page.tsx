@@ -10,6 +10,7 @@ import { arrowBoxLeftSvg, CameraSvg, homeSvg, ImageAddSvg, userSvg } from '@/com
 import LateralRight from '@/components/nav/lateralRight';
 import LateralLeft from '@/components/nav/lateralLeft';
 import Dialog from '@/components/identify/dialog';
+import Noise from '@/components/turbulenceNoise';
 
 // A small helper to grab the best getUserMedia implementation
 
@@ -94,14 +95,7 @@ export default function IdentifyPage() {
                     <LateralRight target='/'>{homeSvg}</LateralRight>
                     <section className="relative w-full h-fit md:h-[450px]">
                         <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
-                            <svg width="0" height="0" id="noise">
-                                <defs>
-                                    <filter id="noiseFilter">
-                                        <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" stitchTiles="stitch" />
-                                        <feBlend mode="soft-light" in="SourceGraphic" />
-                                    </filter>
-                                </defs>
-                            </svg>
+                            <Noise />
                             <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
                                 <div className="h-2 w-2 rounded-full bg-green-400"></div>
                                 <span className="text-neutral-300 text-sm font-medium font-pokemon">Birds Pokedex</span>
@@ -109,8 +103,6 @@ export default function IdentifyPage() {
                             <div
                                 className="w-full md:h-full h-[50dvh] bg-neutral-700 rounded-sm relative overflow-hidden noise-effect shining"
                             >
-                                {/* <HeadCard selectedBird={{...selectedBird, ...selectedBirdSeenD}} known_bird={known_bird[selectedBird.id - 1]} /> */}
-
                                 <div className="flex flex-row w-full h-full relative">
                                     <CameraComponent
                                         videoRef={videoRef}

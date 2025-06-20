@@ -19,13 +19,14 @@ export async function POST(req: Request) {
             }
         );
     }
-    const url = 'http://10.1.1.101:5000/predict';
+    const url = process.env.BACKEND_IDENTIFY || 'http://10.1.1.101:5000/predict';
     const newFormData = new FormData();
     newFormData.append('file', file);
     const response = await fetch(url, {
         method: 'POST',
         body: newFormData,
     });
+    console.log("URL:", url);
 
     if (!response.ok) {
         console.error('Failed to process the image:', response.statusText);

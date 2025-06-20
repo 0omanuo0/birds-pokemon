@@ -9,7 +9,7 @@ export default function BirdCard(
 ) {
 
     useEffect(() => {
-        if (!known_bird) return;
+        if (!known_bird || !selectedBird) return;
         // console.log((Number(selectedBird.id)) * 32 - 4 * 32, "px");
         const canvas = document.getElementById("birdCanvas") as HTMLCanvasElement;
         const ctx = canvas.getContext("2d");
@@ -59,7 +59,7 @@ export default function BirdCard(
                             className="w-[200px] h-[200px] aspect-square border border-neutral-500"
                             id="birdCanvas" width={200} height={200}></canvas>
                         : <div className="w-[200px] h-[200px] aspect-square border border-neutral-500 bg-white flex items-center justify-center">
-                            <span className="font-pokemon text-black text-6xl">?</span>
+                            <span className="font-pokemon text-black text-6xl select-none">?</span>
                         </div>
                 }
 
@@ -70,17 +70,22 @@ export default function BirdCard(
                     backgroundImage: "url('/img/container_info.svg')",
                     backgroundSize: "cover",
                 }}
-                className="w-[150px] min-h-[120px] absolute -mt-10 ml-4 px-2 pt-3 pb-2"
+                className="w-[150px] min-h-[120px] absolute -mt-10 ml-4 px-2 pt-3 pb-2 select-none"
             >
                 <ul className="bg-white h-full rounded-xs w-full mt-[7px] p-1 text-neutral-800 text-xs font-pokemon-smaller">
                     <li className="">
-                        <span className="font-bold">Family:</span> {selectedBird.family || "???"}
+                        <span className="font-bold">Scientific name:</span>
+                        <br/>
+                        <span className="mx-2 -mt-1 block">{selectedBird?.scientificName || "???"}</span>
                     </li>
                     <li className="">
-                        <span className="font-bold">Habitat:</span> {selectedBird.habitat || "???"}
+                        <span className="font-bold">Family:</span> {selectedBird?.family || "???"}
                     </li>
                     <li className="">
-                        <span className="font-bold">Description:</span> {selectedBird.description || "???"}
+                        <span className="font-bold">Habitat:</span> {selectedBird?.habitat || "???"}
+                    </li>
+                    <li className="">
+                        <span className="font-bold">Description:</span> {selectedBird?.description || "???"}
                     </li>
                 </ul>
 

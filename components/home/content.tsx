@@ -29,6 +29,9 @@ export default function Content(
     }, []);
 
     useEffect(() => {
+        if (!selectedBird) return;
+
+
         const birdId = (selectedBird as any).bird_id;
         // collect all sightings of this bird…
         const sightings = birdsSeen.filter(b => b.bird_id === birdId);
@@ -39,10 +42,11 @@ export default function Content(
             setSelectedBirdSeenD(undefined);
         }
 
-    }, [selectedBird, birdsSeen]);
+    }, [selectedBird, birdsSeen, birds]);
 
 
     function setMarginAminationScroll() {
+        if (selectedBird === undefined) return;
         const width = 20 / 2;
 
         const inp = selectedBird.id - width < 0 ? 0 : selectedBird.id - width;
@@ -72,27 +76,28 @@ export default function Content(
 
     return (
         <>
-            <HeadCard selectedBird={{ ...selectedBird, ...selectedBirdSeenD }} known_bird={known_bird[selectedBird.id - 1]} />
+            <HeadCard selectedBird={selectedBird ? { ...selectedBird, ...selectedBirdSeenD } : undefined} known_bird={known_bird[selectedBird?.id - 1] || false} />
 
             <div className="flex flex-row w-full h-[50dvh] md:h-full relative">
                 <BirdCard
                     selectedBird={selectedBird}
                     selectedBirdSeenD={selectedBirdSeenD}
-                    known_bird={known_bird[selectedBird.id - 1]}
+                    known_bird={known_bird[selectedBird?.id - 1]}
                 />
-                <div
+                {selectedBird && <div
                     style={{
                         maskImage: "linear-gradient(0deg,#0000 0%, #000 25%, #000 75%, #0000 100%)",
 
                     }}
                     className="overflow-hidden h-full w-[180px] absolute top-0 right-0 "
                 >
+
                     <ul
                         style={{
                             backgroundImage: "linear-gradient(90deg,#0000 10%, #222 60%)",
-                            transform: `translateY(${(Number(selectedBird.id)) * -birdItemHeight + 4 * birdItemHeight}px)`,
+                            transform: selectedBird ? `translateY(${(Number(selectedBird.id)) * -birdItemHeight + 4 * birdItemHeight}px)` : "0px",
                         }}
-                        className=" flex flex-col gap-2 transition-transform duration-100 ease-in-out"
+                        className=" flex flex-col gap-2 transition-transform duration-100 ease-in-out pb-96"
                     >
                         {birds.map((bird, index) => (
                             <BirdCardScroll
@@ -104,6 +109,7 @@ export default function Content(
                         ))}
                     </ul>
                 </div>
+                }
             </div>
 
             <div
