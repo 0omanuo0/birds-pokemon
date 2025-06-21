@@ -15,7 +15,6 @@ export default function BirdCard(
         const ctx = canvas.getContext("2d");
         if (ctx) {
             const image = new Image();
-            console.log("selectedBirdSeenD", selectedBirdSeenD);
             image.src = selectedBirdSeenD?.photo_url || "img/abubilla.jpg";
             image.onload = () => {
                 const tempCanvas = document.createElement("canvas");

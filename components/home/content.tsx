@@ -10,15 +10,6 @@ export default function Content(
     { birds, birdsSeen, setSelectedBird, selectedBird, known_bird }:
         { birds: Bird[], birdsSeen: any[], setSelectedBird: (bird: Bird) => void, selectedBird: Bird, known_bird: boolean[] }
 ) {
-    // array of boolean values to check if the bird is known comparing the id of the bird with the id of the birds seen
-    // const known_bird = useMemo(() => {
-    //     console.log("aaaaaa", birds);
-    //     console.log("aaaaaa1", birdsSeen);
-    //     const b =  birds.map((bird) => birdsSeen.some((birdSeen) => birdSeen.bird_id === bird.id));
-    //     console.log("bbbbbb", b);
-    //     return b;
-    // }, [birds, birdsSeen]);
-
     const [birdItemHeight, setBirdItemHeight] = useState(32);
     const [selectedBirdSeenD, setSelectedBirdSeenD] = useState<any | undefined>({});
 
@@ -34,7 +25,9 @@ export default function Content(
 
         const birdId = (selectedBird as any).bird_id;
         // collect all sightings of this bird…
-        const sightings = birdsSeen.filter(b => b.bird_id === birdId);
+        const sightings = birdsSeen
+            .filter(b => b.bird_id === birdId)
+            .sort((a, b) => a.sighting_id - b.sighting_id);
         if (sightings.length > 0) {
             // …and pick the last one
             setSelectedBirdSeenD(sightings[sightings.length - 1]);
