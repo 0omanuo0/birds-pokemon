@@ -28,21 +28,23 @@ export default async function RootLayout({
 }>) {
 
     const sql = neon(process.env.DATABASE_URL || "");
-        let user = null;
-        const session = await getServerSession();
-        console.log("Session data:", session);
-        if (!session || !session.user || !session.user.email) {
-                // Redirect to sign-in page if session or user email is not available
-                redirect('/api/auth/signin');
-                return; // Prevent further execution
-            }
-        try {
-            
-            [user] = await sql`SELECT * FROM users WHERE email = ${session.user.email};`;
+    let user = null;
+    const session = await getServerSession();
+    if (!session || !session.user || !session.user.email) {
+        // Redirect to sign-in page if session or user email is not available
+        redirect('/api/auth/signin');
+        return; // Prevent further execution
+    }
+    try {
+
+        [user] = await sql`SELECT * FROM users WHERE email = ${session.user.email};`;
+        if( !user || !user.user_id) {
+            throw new Error("User not found");
         }
-        catch (error) {
-            [user] = await sql`INSERT INTO users (email, username) VALUES (${session?.user?.email}, ${session?.user?.name}) RETURNING *;`;
-        }
+    }
+    catch (error) {
+        [user] = await sql`INSERT INTO users (email, username) VALUES (${session?.user?.email}, ${session?.user?.name}) RETURNING *;`;
+    }
 
 
     return (

@@ -33,21 +33,26 @@ export default async function Home() {
     const sql = neon(process.env.DATABASE_URL || "");
     let user = null;
     const session = await getServerSession();
-    console.log("Session data:", session);
+    let birds_known: Bird[] = [];
+
     if (!session || !session.user || !session.user.email) {
-            // Redirect to sign-in page if session or user email is not available
-            redirect('/api/auth/signin');
-            return; // Prevent further execution
-        }
+        // Redirect to sign-in page if session or user email is not available
+        redirect('/api/auth/signin');
+        return; // Prevent further execution
+    }
     try {
-        
+
         [user] = await sql`SELECT * FROM users WHERE email = ${session.user.email};`;
     }
     catch (error) {
         [user] = await sql`INSERT INTO users (email, username) VALUES (${session?.user?.email}, ${session?.user?.name}) RETURNING *;`;
     }
-
-    let birds_known = await sql`SELECT * FROM sightings WHERE user_id = ${user.user_id} order by bird_id;`;
+    try {
+        birds_known = (await sql`SELECT * FROM sightings WHERE user_id = ${user.user_id} order by bird_id;`) as Bird[];
+    } catch (error) {
+        console.error("Error fetching birds known:", error);
+        return;
+    }
     // change each value of each item in birds_known that is string to ascii
     birds_known = birds_known.map((bird: any) => {
         Object.entries(bird).forEach(([key, value]) => {
