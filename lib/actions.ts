@@ -5,6 +5,7 @@ import { neon } from "@neondatabase/serverless";
 export async function pushBird(
     userId: number,
     birdId: number,
+    imageId: string,
     location: string = "Unknown",
     timestamp: string = new Date().toISOString()
 ) {
@@ -15,7 +16,7 @@ export async function pushBird(
         timestamp
     });
     const sql = neon(process.env.DATABASE_URL || "");
-    const img_url = "img/bird_" + birdId + ".jpg"; ////////////// temporal
+    const img_url = process.env.CLOUDFLARE_R2_API_ENDPOINT + "/birds/" + birdId + "/" + imageId + ".webp";
     try {
         // const idExists = await sql`
         //     SELECT 1 FROM sightings WHERE user_id = ${userId} AND bird_id = ${birdId};
