@@ -23,6 +23,7 @@ export default function IdentifyPage() {
 
     const [showDialog, setShowDialog] = useState(false);
     const [result, setResult] = useState<any | null>(null);
+    const [image, setImage] = useState<Blob | null>(null);
 
     function predict() {
         if (!videoRef.current || !streamRef.current) {
@@ -45,6 +46,8 @@ export default function IdentifyPage() {
             }
             const formData = new FormData();
             formData.append('image', blob, 'frame.jpg');
+            setImage(blob); // Store the image blob for dialog display
+            console.log('Sending image for prediction:', blob.size);
             try {
                 const response = await fetch('/api/identify', {
                     method: 'POST',
@@ -108,7 +111,7 @@ export default function IdentifyPage() {
                                         videoRef={videoRef}
                                         streamRef={streamRef}
                                     />
-                                    <Dialog showDialog={showDialog} setShowDialog={setShowDialog} result={result} />
+                                    <Dialog showDialog={showDialog} image={image} setShowDialog={setShowDialog} result={result} />
                                 </div>
 
                                 <div className={"absolute bottom-0 right-0 w-fit h-16 m-4  flex items-end justify-center" + (showDialog ? " hidden" : "")}>
@@ -124,6 +127,8 @@ export default function IdentifyPage() {
 
                                                 const formData = new FormData();
                                                 formData.append('image', file);
+                                                setImage(file); // Store the image blob for dialog display
+                                                console.log('Sending image for prediction:', file.size);
 
                                                 try {
                                                     const response = await fetch('/api/identify', {

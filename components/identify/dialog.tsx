@@ -12,8 +12,9 @@ const MapWithNoSSR = dynamic(() => import('@/components/identify/map'), {
 });
 
 
-export default function Dialog({ showDialog, setShowDialog, result }: {
+export default function Dialog({ showDialog, image, setShowDialog, result }: {
     showDialog: boolean;
+    image?: Blob | null;
     setShowDialog: (show: boolean) => void;
     result: any | null;
 }) {
@@ -27,7 +28,7 @@ export default function Dialog({ showDialog, setShowDialog, result }: {
         setSelectedDate(new Date());
     }, [showDialog]);
 
-    const {user} = useUser();
+    const { user } = useUser();
     console.log("User in dialog:", user);
 
 
@@ -129,44 +130,40 @@ export default function Dialog({ showDialog, setShowDialog, result }: {
                         }}
                         className="bg-yellow-400 text-black text-xl tracking-wider pt-2 font-pokemon px-4 py-1 w-30 shadow-md hover:bg-yellow-500 transition-colors cursor-pointer"
                         onClick={() => {
+                            const uuid = crypto.randomUUID();
+                            pushBird(user?.user_id, result.bird.id, uuid, location ? `${location[0]},${location[1]}` : undefined, selectedDate.toISOString())
+                                .then(async () => {
 
-                            pushBird(user?.user_id, result.bird.id, location ? `${location[0]},${location[1]}` : undefined, selectedDate.toISOString())
-                                .then(() => {
-
-                                    // upload the canvas image to api/saveImage /////////////// TODO: temporal
-                                    const canvas = document.getElementById("birdCanvas") as HTMLCanvasElement;
-                                    canvas.toBlob(async (blob) => {
-                                        if (blob) {
-                                            const formData = new FormData();
-                                            formData.append("image", blob);
-                                            formData.append("birdId", result.bird.id.toString());
-                                            await fetch("/api/saveImage", {
-                                                method: "POST",
-                                                body: formData
-                                            });
-                                        }
+                                    const formData = new FormData();
+                                    formData.append("image", image ? image : new Blob());
+                                    formData.append("birdId", result.bird.id.toString());
+                                    formData.append("imageId", uuid);
+                                    await fetch("/api/saveImage", {
+                                        method: "POST",
+                                        body: formData
                                     });
-                                    alert("Bird added successfully!");
-                                    setShowDialog(false);
+
                                 });
+                            alert("Bird added successfully!");
+                            setShowDialog(false);
 
                         }}>
-                        <svg
-                            className='absolute top-0 left-0 h-[96px] w-[120px] pointer-events-none'
-                            viewBox="0 0 100 100"
-                            preserveAspectRatio="none"
-                        >
-                            <polygon
-                                points="15,0 85,0 100,70 100,100 0,100 0,70"
-                                fill="transparent"
-                                stroke="#404040aa"
-                                strokeWidth="3"
-                            />
-                        </svg>
-                        Add bird!
-                    </button>
-                </div>
+                    <svg
+                        className='absolute top-0 left-0 h-[96px] w-[120px] pointer-events-none'
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                    >
+                        <polygon
+                            points="15,0 85,0 100,70 100,100 0,100 0,70"
+                            fill="transparent"
+                            stroke="#404040aa"
+                            strokeWidth="3"
+                        />
+                    </svg>
+                    Add bird!
+                </button>
             </div>
+        </div >
         </>
     );
 }
