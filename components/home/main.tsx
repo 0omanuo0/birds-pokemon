@@ -21,8 +21,6 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
 
     const {user : userK, setUser: setUserK} = useUser();
     
-
-    console.log("Session data:", user);
     useEffect(() => {
         if (user === null) {
             router.push("/api/auth/signin");
@@ -45,6 +43,7 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
 
     useEffect(() => {
         setSelectedBird(birdsFiltered[0]);
+        console.log(birdsFiltered, "birdsFiltered", birdsFiltered.length);
     }, [birdsFiltered, known_bird]);
 
 
@@ -94,7 +93,7 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
                     }
                 }}
                 startScroll={0}
-                endScroll={(birdsFiltered.length - 1) * degrees_per_item}
+                endScroll={(birdsFiltered.length > 0 ? birdsFiltered.length - 1 : 0) * degrees_per_item}
                 onPress={() =>
                     setIsFiltered(prev => {
                         if (prev) {
