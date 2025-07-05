@@ -70,6 +70,9 @@ export default async function Home() {
             name: bird.common_name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
             scientificName: bird.scientific_name,
             family: bird.family,
+            na: bird.na,
+            ca: bird.ca,
+            pb: bird.pb,
         }
     });
     // console.log(birds_data);
