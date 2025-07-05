@@ -80,6 +80,37 @@ body {
     background-size: cover;
   }
 
+  .pixel-corners-1 {
+    clip-path: polygon(0px calc(100% - 4px),
+        1px calc(100% - 4px),
+        1px calc(100% - 2px),
+        2px calc(100% - 2px),
+        2px calc(100% - 1px),
+        4px calc(100% - 1px),
+        4px 100%,
+        calc(100% - 4px) 100%,
+        calc(100% - 4px) calc(100% - 1px),
+        calc(100% - 2px) calc(100% - 1px),
+        calc(100% - 2px) calc(100% - 2px),
+        calc(100% - 1px) calc(100% - 2px),
+        calc(100% - 1px) calc(100% - 4px),
+        100% calc(100% - 4px),
+        100% 4px,
+        calc(100% - 1px) 4px,
+        calc(100% - 1px) 2px,
+        calc(100% - 2px) 2px,
+        calc(100% - 2px) 1px,
+        calc(100% - 4px) 1px,
+        calc(100% - 4px) 0px,
+        4px 0px,
+        4px 1px,
+        2px 1px,
+        2px 2px,
+        1px 2px,
+        1px 4px,
+        0px 4px);
+  }
+
   .pixel-corners-4 {
     clip-path: polygon(0px calc(100% - 4px),
         1px calc(100% - 4px),
@@ -237,7 +268,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: #404040;
+    background: #bebebe;
     display: block;
     pointer-events: none;
   }
