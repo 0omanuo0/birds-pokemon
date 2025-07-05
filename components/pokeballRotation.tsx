@@ -1,8 +1,10 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 
 export default function PokeballRotation(
     { onWheel, startScroll, endScroll, onPress, onLongPress }
-        : { onWheel: (rotation: number) => void; startScroll: number; endScroll: number; onPress: () => void; onLongPress?: () => void; }
+        : { onWheel?: (rotation: number) => void; startScroll: number; endScroll: number; onPress?: () => void; onLongPress?: () => void; }
 ) {
     const [pokRotation, setPokRotation] = useState(startScroll);
     const [isRotating, setIsRotating] = useState(false);
@@ -15,7 +17,7 @@ export default function PokeballRotation(
     useEffect(() => {
         // onwheel
         // console.log("onWheel", pokRotation);
-        onWheel(pokRotation);
+        onWheel?.(pokRotation);
     }, [pokRotation]);
 
     function startRotation(e: any) {

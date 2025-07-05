@@ -69,3 +69,10 @@ export const searchSvg = <svg fill="none" xmlns="http://www.w3.org/2000/svg" vie
 >
     <path d="M6 2h8v2H6V2zM4 6V4h2v2H4zm0 8H2V6h2v8zm2 2H4v-2h2v2zm8 0v2H6v-2h8zm2-2h-2v2h2v2h2v2h2v2h2v-2h-2v-2h-2v-2h-2v-2zm0-8h2v8h-2V6zm0 0V4h-2v2h2z" fill="currentColor" />
 </svg>
+
+
+export const trashSvg = <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+    style={{ filter: "drop-shadow(1px 1px 0px rgba(0, 0, 0, 0.5))" }}
+>
+    <path d="M16 2v4h6v2h-2v14H4V8H2V6h6V2h8zm-2 2h-4v2h4V4zm0 4H6v12h12V8h-4zm-5 2h2v8H9v-8zm6 0h-2v8h2v-8z" fill="currentColor" />
+</svg>

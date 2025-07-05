@@ -136,6 +136,7 @@ export default function IdentifyPage() {
                                                         body: formData,
                                                     });
                                                     if (!response.ok) {
+                                                        alert('Failed to fetch prediction: ' + response.statusText);
                                                         console.error('Failed to fetch prediction:', response.statusText);
                                                         return;
                                                     }
