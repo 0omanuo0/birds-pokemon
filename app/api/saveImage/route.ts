@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(await image.arrayBuffer());
 
     // convert the image to webp format
-    const webpBuffer = await sharp(buffer).webp().toBuffer();
+    const webpBuffer = await sharp(buffer).rotate().webp().withMetadata().toBuffer();
 
 
 
