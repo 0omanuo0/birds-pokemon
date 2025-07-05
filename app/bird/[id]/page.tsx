@@ -9,9 +9,9 @@ import { redirect } from 'next/navigation';
 
 
 
-export default async function BirdPage({ params }: { params: { id: string } }) {
+export default async function BirdPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession();
-    const {id} = await params;
+    const { id } = await params;
     if (!session || !session.user || !session.user.email) {
         // Redirect to sign-in page if session or user email is not available
         redirect('/api/auth/signin');
@@ -21,7 +21,7 @@ export default async function BirdPage({ params }: { params: { id: string } }) {
     const [user] = await sql`SELECT * FROM users WHERE email = ${session.user.email};`;
     const bird = await fetchBirdById(id);
     const sightings = await sightingsByUserId(user.user_id, id);
-    
+
     return (
 
         <div className='h-[100dvh] md:py-4 2xl:py-8 w-full'

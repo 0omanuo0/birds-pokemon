@@ -68,10 +68,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
     const widthImg = 130 - 8 * 2;
     const degrees_per_item = 18; // 360 / 20
     const [selectedImg, setSelectedImg] = useState(0);
-    // triplicate the original array
-    if (!sightings || sightings.length === 0) {
-        return
-    }
+
 
     const sightingss = sightings;
 
@@ -136,6 +133,11 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                 setDescription("No description available.");
             });
     }, [bird.name]);
+
+        // triplicate the original array
+    if (!sightings || sightings.length === 0) {
+        return
+    }
 
     return (
         <main

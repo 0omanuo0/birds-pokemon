@@ -11,7 +11,7 @@ export default function HeadCard(
 
 
     useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
+        
 
         if (!selectedBird || !selectedBird?.location) {
             setLocation(undefined);
@@ -23,7 +23,7 @@ export default function HeadCard(
             return;
         }
 
-        timeoutId = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             const lat = selectedBird?.location?.split(",")[0];
             const lon = selectedBird?.location?.split(",")[1];
 
