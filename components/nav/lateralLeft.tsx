@@ -43,7 +43,7 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
         e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
     ) => {
         e.preventDefault();
-        setOffsetRight(30);
+        setOffsetRight(10);
         draggingRef.current = true;
         startXRef.current =
             'touches' in e ? e.touches[0].clientX : e.clientX;
