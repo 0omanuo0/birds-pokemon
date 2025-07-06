@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./roundedCorners.css";
 import Providers from "@/components/providers";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
