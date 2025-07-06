@@ -94,7 +94,7 @@ export default function IdentifyPage() {
                     className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
                 >
 
-                    <LateralLeft target='/identify'>{userSvg}</LateralLeft>
+                    <LateralLeft target='/user'>{userSvg}</LateralLeft>
                     <LateralRight target='/'>{homeSvg}</LateralRight>
                     <section className="relative w-full h-fit md:h-[450px]">
                         <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
