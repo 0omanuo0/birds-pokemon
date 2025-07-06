@@ -19,8 +19,8 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
 
     const router = useRouter();
 
-    const {user : userK, setUser: setUserK} = useUser();
-    
+    const { user: userK, setUser: setUserK } = useUser();
+
     useEffect(() => {
         if (user === null) {
             router.push("/api/auth/signin");
@@ -141,7 +141,9 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
                     })
                 }
                 onLongPress={() => {
-                    signOut()
+                    if (known_bird[selectedBird.id ]) {
+                        router.push(`/bird/${(selectedBird as any)?.bird_id || selectedBird?.id}`);
+                    }
                 }}
 
             />

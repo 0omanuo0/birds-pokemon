@@ -8,7 +8,16 @@ import type { Bird, Sighting } from "@/lib/types";
 import { use, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import HeadCard from "../home/headCard";
+import BirdDescription from "./description";
 
+
+function normalizeId(id: string): string {
+    return id
+        .toLowerCase()
+        .normalize("NFD") // para separar las tildes
+        .replace(/[\u0300-\u036f]/g, "") // remover tildes
+        .replace(/\s+/g, "_"); // espacios por guiones bajos si aplica
+}
 
 async function fetchWikipedia(scientific_name: string): Promise<any[]> {
     const url = `https://es.wikipedia.org/w/rest.php/v1/page/${scientific_name}/html`;
@@ -23,42 +32,61 @@ async function fetchWikipedia(scientific_name: string): Promise<any[]> {
     console.log(sections, "sections");
     const result: any[] = [];
 
-    sections.forEach(section => {
+    const targetSections = [
+        "distribucion_y_habitat",
+        "caracteristicas",
+        "estado_de_conservacion"
+    ];
+
+    console.log(sections, "sections");
+
+
+    sections.forEach((section, index) => {
         const h2 = section.querySelector("h2[id]");
-        if (true) {
-            const title = h2?.textContent?.trim() || "Sin título";
 
-            const paragraphs = Array.from(section.querySelectorAll("p"))
-                .filter(p => !p.closest("sup") && !p.closest("table"))
-                .map(p => {
-                    // Clone the <p> to avoid altering the original DOM
-                    const clean: any = p.cloneNode(true);
-                    // Remove <sup> elements (references)
-                    clean.querySelectorAll("sup").forEach((el: any) => el.remove());
-                    // Remove <table> elements
-                    clean.querySelectorAll("table").forEach((el: any) => el.remove());
-                    // Remove all tags except <i> and <b>
-                    clean.querySelectorAll("*").forEach((el: any) => {
-                        if (el.tagName !== "I" && el.tagName !== "B") {
-                            // Replace the element with its text content
-                            const textNode = document.createTextNode(el.textContent || "");
-                            el.replaceWith(textNode);
-                        }
-                    });
-                    // Print the cleaned HTML as text
-                    console.log(clean.innerHTML.trim().replace(/\s+/g, " "), "clean");
-                    return clean.innerHTML.trim().replace(/\s+/g, " ");
-                })
-                .filter(text => text.length > 0);
+        const id = normalizeId(h2?.id || "");
 
-            if (paragraphs.length > 0) {
-                result.push({
-                    title,
-                    body: paragraphs.join(" ")
+        if (!targetSections.includes(id) && index !== 0) return;
+
+
+        const title = h2?.textContent?.trim() || "Sin título";
+
+        const paragraphs = Array.from(section.querySelectorAll("p"))
+            .filter(p => !p.closest("sup") && !p.closest("table"))
+            .map(p => {
+                // Clone the <p> to avoid altering the original DOM
+                const clean: any = p.cloneNode(true);
+                // Remove <sup> elements (references)
+                clean.querySelectorAll("sup").forEach((el: any) => el.remove());
+                // Remove <table> elements
+                clean.querySelectorAll("table").forEach((el: any) => el.remove());
+                // Remove all tags except <i> and <b>
+                clean.querySelectorAll("*").forEach((el: any) => {
+                    if (el.tagName !== "I" && el.tagName !== "B") {
+                        // Replace the element with its text content
+                        const textNode = document.createTextNode(el.textContent || "");
+                        el.replaceWith(textNode);
+                    }
                 });
-            }
+                return clean.innerHTML.trim().replace(/\s+/g, " ");
+            })
+            .filter(text => text.length > 0);
+
+        if (paragraphs.length > 0) {
+            result.push({
+                title,
+                body: paragraphs.join(" ")
+            });
         }
+
     });
+
+    // split by . and select the first 3 paragraphs
+    if (result.length > 0) {
+        result.forEach(section => {
+            section.body = section.body.split(". ").slice(0, 3).join(". ");
+        });
+    }
 
     return result;
 }
@@ -69,8 +97,11 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
     const degrees_per_item = 18; // 360 / 20
     const [selectedImg, setSelectedImg] = useState(0);
 
-
-    const sightingss = sightings;
+    // if is less than 10 full top it with {photo_url:""}
+    const sightingss: Sighting[] = [
+        ...sightings,
+        ...Array.from({ length: 10 - sightings.length }, () => ({ photo_url: "" }))
+    ] as Sighting[];
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(0);
@@ -134,7 +165,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
             });
     }, [bird.name]);
 
-        // triplicate the original array
+    // triplicate the original array
     if (!sightings || sightings.length === 0) {
         return
     }
@@ -146,7 +177,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
             <LateralLeft target='/' setTop="65%">{homeSvg}</LateralLeft>
 
             <section
-                className="relative md:h-[500px] w-full h-fit">
+                className="relative md:h-[450px] md:min-h-auto w-full min-h-[550px]">
                 <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
                     <Noise />
                     <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
@@ -177,69 +208,51 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                                             transition: "width 0.3s ease-in-out, height 0.3s ease-in-out",
                                             zIndex: selectedImg == index ? 10 : 1,
                                         }}
-                                        className={"flex-shrink-0 -mx-2 overflow-hidden relative " + (selectedImg == index ? "pixel-corners-6-border--wrapper" : "")}>
-                                        {selectedImg == index &&
+                                        className={"flex-shrink-0 -mx-2 overflow-hidden relative " + (selectedImg == index ? "pixel-corners-6-border--wrapper" : "")}
+                                    >
+                                        {
+                                            selectedImg == index &&
                                             <button className="text-red-700/80 text-xl h-6 w-6 absolute top-2 right-2 z-50 bg-neutral-100 p-1 pixel-corners-4" >
                                                 {trashSvg}
                                             </button>
                                         }
-                                        <img
-                                            src={sighting.photo_url || "/img/bird_placeholder.png"}
-                                            alt={"" + sighting.sighting_id || "Unknown Bird"}
-                                            className={"aspect-square object-cover shadow-md" + (selectedImg == index ? " pixel-corners-6-border" : "")}
-                                            width={200}
-                                            height={200}
-                                            style={{
-                                                filter: selectedImg == index ? "none" : "blur(1px) brightness(0.6) opacity(0.8)",
-                                            }}
-                                        />
+                                        {sighting.photo_url !== "" ?
+                                            <img
+                                                src={sighting.photo_url || "/img/bird_placeholder.png"}
+                                                alt={"" + sighting.sighting_id || "Unknown Bird"}
+                                                className={"aspect-square object-cover shadow-md" + (selectedImg == index ? " pixel-corners-6-border" : "")}
+                                                width={200}
+                                                height={200}
+                                                style={{
+                                                    filter: selectedImg == index ? "none" : "blur(1px) brightness(0.6) opacity(0.8)",
+                                                }}
+                                            />
+                                            :
+                                            <div className="flex items-center justify-center h-full w-full"
+                                                style={{
+                                                    // background color is descending from #555 to #333 depending of the index
+                                                    backgroundColor: `rgba(85, 85, 85, ${1 - (index / sightingss.length)})`
+                                                }}
+                                            >
+                                                <span className="text-neutral-300 h-8 w-8">
+                                                    {addSvg}
+                                                </span>
+                                            </div>
+                                        }
                                     </li>
                                 ))
                             }
                         </ul>
-                        <div className="h-full w-[calc(100%-16px)] bg-neutral-800 ml-4 relative pt-1"
-                            style={{
-                                clipPath: "polygon(75% 0, 100% 0, 100% 100%, 0 100%, 0 5%, 70% 5%)",
-                                WebkitMaskImage: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
-                                maskImage: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
-                            }}
-                        >
-                            <div className="h-2 w-20 bg-yellow-300 ml-4 absolute top-2 right-2 "
-                                style={{
-                                    clipPath: "polygon(10% 0%, 100% 0%, 100% 100%, 0% 100%)",
-                                }}
-                            ></div>
-                            <article
-                                style={{
-                                    backgroundImage: `
-                                        linear-gradient(to right, rgba(0,0,0,0.07) 1px, transparent 1px),
-                                        linear-gradient(to bottom, rgba(0,0,0,0.07) 1px, transparent 1px)
-                                    `,
-                                    backgroundSize: '20px 20px',
-                                }}
-                                className="bg-white h-[150px] overflow-y-scroll w-[calc(100%-32px)] mx-4 mt-8 pixel-corners-6 px-2 pt-1"
-                            >
-                                <h2 className="font-pokemon text-black text-2xl">Description:</h2>
-                                <div className="text-sm text-neutral-800 p-1 leading-4">
-                                    {description && description.map((section: any, index: number) => (
-                                        <div key={index} className="mb-2">
-                                            { index > 0 && <h3 className="font-bold text-lg">{section.title}</h3> }
-                                            <p dangerouslySetInnerHTML={{ __html: section.body }} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </article>
-
-                        </div>
+                        <BirdDescription description={description} />
                     </div>
                 </div>
             </section>
             <PokeballRotation
                 startScroll={0}
-                endScroll={sightingss.length * degrees_per_item}
+                endScroll={(sightings.length-1) * degrees_per_item}
                 onWheel={(rotation) => {
                     const id = Math.round(rotation / degrees_per_item);
-                    if (id < sightingss.length && id >= 0) {
+                    if (id < sightings.length && id >= 0) {
                         setSelectedImg(id);
                     }
                 }}
