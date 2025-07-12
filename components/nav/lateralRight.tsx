@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 
 
 export default function LateralRight({children, target, setTop, onAction}: { children?: React.JSX.Element, target?: string, setTop? :  string | number , onAction?: () => void }) {
+    const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
     const [offsetRight, setOffsetRight] = useState(0);
+    const [timerTouch, setTimerTouch] = useState<NodeJS.Timeout | null>(null);
     const draggingRef = useRef(false);
     const startXRef = useRef(0);
     const startOffsetRef = useRef(0);
@@ -29,6 +32,8 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
 
     // END handler: stop dragging, remove listeners
     const handleEnd = () => {
+        clearTimeout(timerTouch!);
+        setTimerTouch(null);
         draggingRef.current = false;
         // snap to -90 if offset is less than -45, else snap to 0
         setOffsetRight(prev => (prev < -55 ? -80 : 0));
@@ -43,6 +48,19 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
         e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
     ) => {
         e.preventDefault();
+
+        if (isIOS) {
+            setTimerTouch(setTimeout(() => {
+                if (target) {
+                    router.push(target);
+                } else {
+                    onAction?.();
+                }
+                clearTimeout(timerTouch!);
+                setTimerTouch(null);
+            }, 500));
+        }
+
         setOffsetRight(-30);
         draggingRef.current = true;
         startXRef.current =
@@ -84,9 +102,17 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
         <div
             onMouseDown={startDrag}
             onTouchStart={startDrag}
+            onTouchEnd={(e) => {
+                e.stopPropagation();
+                if (timerTouch) {
+                    clearTimeout(timerTouch);
+                    setTimerTouch(null);
+                }
+            }}
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => {
                 e.preventDefault()
+                e.stopPropagation();
                 if (target) {
                     router.push(target);
                 } else {
@@ -102,6 +128,9 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
                 transition: 'right 0.2s ease-out',
                 background: "linear-gradient(160deg, #e85d63, #c63f44 70%)",
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                userSelect: 'none',
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
             }}
             className='h-[96px] w-[120px] z-90 flex items-center justify-between px-2'
         >
@@ -121,7 +150,7 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
 
             {/* Left icon */}
             <div className='flex items-center justify-center w-[28px] h-[28px] mx-[2px]'>
-                {children || CameraSvg}
+                {children}
             </div>
 
             {/* Vertical Divider */}
@@ -129,7 +158,7 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
 
             {/* Main icon */}
             <div className='flex items-center justify-center flex-1'>
-                <span className='text-white text-xl'>{arrowBoxLeftSvg}</span>
+                {/* <span className='text-white text-xl'>{arrowBoxLeftSvg}</span> */}
             </div>
         </div>
     );

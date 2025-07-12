@@ -1,11 +1,15 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
-import { arrowBoxLeftSvg, CameraSvg } from '../imageSvg';
+import { arrowBoxLeftSvg } from '../imageSvg';
 import { useRouter } from 'next/navigation';
+import { clear } from 'console';
 
 
 export default function LateralLeft({children, target, setTop}: { children?: React.JSX.Element, target?: string, setTop?: string | number }) {
+    const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
     const [offsetRight, setOffsetRight] = useState(0);
+    const [timerTouch, setTimerTouch] = useState<NodeJS.Timeout | null>(null);
     const draggingRef = useRef(false);
     const startXRef = useRef(0);
     const startOffsetRef = useRef(0);
@@ -29,6 +33,7 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
 
     // END handler: stop dragging, remove listeners
     const handleEnd = () => {
+        clearTimeout(timerTouch!);
         draggingRef.current = false;
         // snap to 0 if offset is greater than 15, else snap to 80
         setOffsetRight(prev => (prev < 15 ? 0 : 80));
@@ -43,6 +48,12 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
         e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
     ) => {
         e.preventDefault();
+        if (isIOS) {
+            setTimerTouch(setTimeout(() => {
+                router.push(target || '/');
+            }, 500));
+        }
+
         setOffsetRight(10);
         draggingRef.current = true;
         startXRef.current =
@@ -91,6 +102,8 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
                 transition: 'left 0.2s ease-out',
                 background: "linear-gradient(160deg, #e85d63, #c63f44 70%)",
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
             }}
             className='h-[96px] w-[120px] z-90 flex items-center justify-between px-2'
         >
@@ -108,13 +121,13 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
                 />
             </svg>
             <div className='flex items-center justify-center flex-1'>
-                <span className='text-white text-xl'>{arrowBoxLeftSvg}</span>
+                {/* <span className='text-white text-xl'>{arrowBoxLeftSvg}</span> */}
             </div>
             <div className='h-2/3 w-1 border-r-2 border-neutral-700/40 mx-2'></div>
 
 
             <div className='flex items-center justify-center w-[28px] h-[28px] mx-[2px]'>
-                {children || CameraSvg}
+                {children }
             </div>
 
             
