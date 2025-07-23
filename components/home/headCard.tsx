@@ -66,7 +66,7 @@ export default function HeadCard(
                     {known_bird ? selectedBird?.name || "???" : "???"}
                 </h2>
             </div>
-            <div className={((known_bird ? location : "???")?.length! <= 20 ? "space-x-3 " : " ") +  "text-black text-sm py-1 text-right uppercase font-pokemon mx-2"}>
+            <div className={(((known_bird ? location : "???")?.length ?? 0) <= 20 ? "space-x-3 " : " ") +  "text-black text-sm py-1 text-right uppercase font-pokemon mx-2"}>
                 <span>
                     {selectedBird ? (
                         <>Seen{" "}
@@ -80,7 +80,7 @@ export default function HeadCard(
                     ) : "???"}
                 </span>
                 {selectedBird ? (
-                    (known_bird ? location : "???")?.length! > 20 ? (
+                    ((known_bird ? location : "???")?.length ?? 0) > 20 ? (
                         <>
                             <br />
                             <span className="font-pokemon-bw2">

@@ -36,7 +36,7 @@ export default function Add() {
                             </svg>
                             <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
                                 <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                                <span className="text-neutral-300 text-sm font-medium font-pokemon">Birds Pokedex</span>
+                                <span className="text-neutral-300 font-medium font-pokemon">Birds Pokedex</span>
                             </nav>
                             <div
                                 className="w-full h-[60dvh] md:h-full bg-neutral-700 rounded-sm relative overflow-hidden noise-effect shining"
@@ -106,7 +106,7 @@ export default function Add() {
                                 }}
                                 className=" shadow-lg bg-neutral-700 w-18 h-10 translate-y-[calc(50%-6px)] border-2 border-y-yellow-400 border-x-transparent"
                             >
-                                <span style={{ left: 23, top: 1, textShadow: "2px 2px 0px #0006", }} className="font-pokemon text-4xl absolute">+</span>
+                                <span style={{ left: 23, top: 1, textShadow: "2px 2px 0px #0006", }} className="font-pokemon absolute">+</span>
                             </button>
                         </div>
                     </section>
