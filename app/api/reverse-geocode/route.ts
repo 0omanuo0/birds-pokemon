@@ -1,6 +1,9 @@
 // pages/api/reverse-geocode.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 
+
+const temp_Cache = new Map<string, string>();
+
 export async function GET(req: Request) {
 
     const url = new URL(req.url);
@@ -22,6 +25,19 @@ export async function GET(req: Request) {
         );
     }
 
+    const cacheKey = `${lat},${lon}`;
+    if (temp_Cache.has(cacheKey)) {
+        return new Response(
+            JSON.stringify({ location: temp_Cache.get(cacheKey) }),
+            {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+    }
+
     try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
         const response = await fetch(url, {
@@ -31,6 +47,8 @@ export async function GET(req: Request) {
         });
 
         const data = await response.json();
+
+        temp_Cache.set(cacheKey, data.display_name);
 
         return new Response(
             JSON.stringify({ location: data.display_name }),

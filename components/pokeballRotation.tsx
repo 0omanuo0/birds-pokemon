@@ -12,6 +12,7 @@ export default function PokeballRotation(
     const [, setVelocity] = useState(0);
     const inertiaIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const pokeballCenterRef = useRef<HTMLButtonElement>(null);
 
 
     useEffect(() => {
@@ -26,8 +27,8 @@ export default function PokeballRotation(
             inertiaIntervalRef.current = null;
         }
 
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
+        const centerX = pokeballCenterRef.current?.getBoundingClientRect().left! + pokeballCenterRef.current?.offsetWidth! / 2 || 0;
+        const centerY = pokeballCenterRef.current?.getBoundingClientRect().top! + pokeballCenterRef.current?.offsetHeight! / 2 || 0;
         const mouseX = e.clientX || e.touches[0].clientX;
         const mouseY = e.clientY || e.touches[0].clientY;
         const deltaX = mouseX - centerX;
@@ -37,8 +38,8 @@ export default function PokeballRotation(
     }
 
     function handleRotation(e: any) {
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
+        const centerX = pokeballCenterRef.current?.getBoundingClientRect().left! + pokeballCenterRef.current?.offsetWidth! / 2 || 0;
+        const centerY = pokeballCenterRef.current?.getBoundingClientRect().top! + pokeballCenterRef.current?.offsetHeight! / 2 || 0;
         const mouseX = e.clientX || e.touches[0].clientX;
         const mouseY = e.clientY || e.touches[0].clientY;
         const deltaX = mouseX - centerX;
@@ -46,7 +47,7 @@ export default function PokeballRotation(
 
         const startAngle = Math.atan2(startCords.y, startCords.x) * (180 / Math.PI);
         const currentAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-        const angleDifference = (currentAngle - startAngle) * -1;
+        const angleDifference = (currentAngle - startAngle);
         // console.log(angleDifference);
 
         if (isRotating) {
@@ -82,7 +83,7 @@ export default function PokeballRotation(
                     
                     setPokRotation((prevRotation) => {
                         const newRotation = prevRotation + prevVelocity;
-                        
+                    
                         if (newRotation < 0)
                             return Math.min(0, newRotation + Math.abs(newRotation) * 0.1); // Spring back to 0
                         else if (newRotation > endScroll)
@@ -100,6 +101,27 @@ export default function PokeballRotation(
         setIsRotating(false);
         applyInertia();
     }
+
+    // when loads the component make a small animation changing the speed to show that is able to rotate
+    useEffect(() => {
+        // get the localstorage value for not_new_user
+        const notNewUser = localStorage.getItem("not_new_user");
+        if(parseInt(notNewUser || "0") > 3) return;
+
+        setTimeout(() => {
+            setVelocity(-1);
+            applyInertia();
+        }, 1000);
+
+        setTimeout(() => {
+            setVelocity(-0.5);
+            applyInertia();
+        }, 1500);
+
+        // set the localstorage value for not_new_user to +1
+        localStorage.setItem("not_new_user", (parseInt(notNewUser || "0") + 1).toString());
+
+    }, [startScroll]);
 
     return (
         <div className="absolute bottom-0 w-full z-10 md:w-[400px] md:mx-auto">
@@ -152,6 +174,7 @@ export default function PokeballRotation(
                         onLongPress();
                     }
                 }}
+                ref={pokeballCenterRef}
                 className="absolute left-1/2 transform -translate-x-1/2 -bottom-10 rounded-full bg-white border-8 border-neutral-800/95 w-20 h-20 flex items-center justify-center hover:cursor-pointer hover:bg-yellow-100 active:bg-yellow-100 shadow-inset"
             >
                 <div className="bg-neutral-800/95 w-10 h-10 rounded-full"></div>

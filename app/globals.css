@@ -19,6 +19,15 @@
   }
 }
 
+
+@font-face {
+  font-family: 'PokemonBW2';
+  src: url('/fonts/pokemon-ds-font.otf') format('opentype'), url('/fonts/pokemon-ds-font.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'PokemonBW';
   src: url('/fonts/pokemon-b-w.otf') format('opentype');
@@ -32,6 +41,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-touch-callout: none !important;
+  overscroll-behavior: none;
+  overflow: hidden;
 }
 
 div {
@@ -45,7 +56,6 @@ div {
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.5);
-    font-size: 1.2rem;
   }
 
   .font-pokemon-smaller {
@@ -53,7 +63,14 @@ div {
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     /* text-shadow: 0.5px 0.5px 1px rgba(0, 0, 0, 0.1); */
-    font-size: 1.2rem;
+  }
+
+  .font-pokemon-bw2 {
+    font-family: 'PokemonBW2', sans-serif;
+    @apply tracking-wide;
+    /* blocky shadow (no blur) */
+    text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.5);
+    font-size: 8px !important;
   }
 
   .noise-effect {
@@ -69,47 +86,65 @@ div {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    /* No bloquea clics ni interacciones */
     opacity: 0.2;
-    /* Ajusta la intensidad del noise */
-
-    /* Se aplica el filtro de ruido */
     filter: url(#noiseFilter);
-
     background-blend-mode: soft-light;
   }
 
-  .bg-main-image {
-    position: relative;
-    background-image: url('/img/container_image_main.svg');
-    background-size: cover;
-  }
+  @supports (-webkit-overflow-scrolling: touch) {
+    .noise-effect::after {
+      animation: noise-stable 1s infinite linear;
+      background-color: rgba(0, 0, 0, 0.01);
+    }
 
-
-  .scrollable-pattern {
-    content: '';
-    inset: 0;
-    z-index: 0;
-    background-image:
-      linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
-    background-size: 20px 20px;
-    background-attachment: scroll;
-    background-origin: content-box;
-    pointer-events: none;
-  }
-
-  .description-size {
-    height: calc(var(--desc-height)+12px+32px)
-  }
-
-  .description-size-article {
-    height: calc(var(--desc-height))
+    .font-pokemon-bw2 {
+      font-size: 14px !important;
+    }
   }
 
 
 
-  /* .shining::before {
+@keyframes noise-stable {
+  0% {
+    opacity: 0.201;
+  }
+
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.bg-main-image {
+  position: relative;
+  background-image: url('/img/container_image_main.svg');
+  background-size: cover;
+}
+
+
+.scrollable-pattern {
+  content: '';
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-attachment: scroll;
+  background-origin: content-box;
+  pointer-events: none;
+}
+
+.description-size {
+  height: calc(var(--desc-height)+12px+32px)
+}
+
+.description-size-article {
+  height: calc(var(--desc-height))
+}
+
+
+
+/* .shining::before {
     content: '';
     position: absolute;
     top: -100%;

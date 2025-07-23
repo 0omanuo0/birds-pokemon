@@ -47,6 +47,28 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
     }, [birdsFiltered, known_bird]);
 
 
+    
+    useEffect(() => {
+        if (user === null) {
+            router.push("/api/auth/signin");
+        }
+    }, [user, router]);
+
+    const [loaderTimer, setLoaderTimer] = useState<NodeJS.Timeout | null>(null);
+    useEffect(() => {
+        // preload /birds/id when the selected bird changes, but wait 1s before doing so
+        if (selectedBird) {
+            if (loaderTimer) {
+                clearTimeout(loaderTimer);
+            }
+            setLoaderTimer(setTimeout(() => {
+                const birdId = (selectedBird as any).bird_id || selectedBird.id;
+                console.log("Preloading bird:", birdId);
+                router.prefetch(`/bird/${birdId}`);
+            }, 1000));
+            
+        }
+    }, [selectedBird, router]);
 
 
     return (

@@ -48,7 +48,11 @@ export default async function Home() {
         [user] = await sql`INSERT INTO users (email, username) VALUES (${session?.user?.email}, ${session?.user?.name}) RETURNING *;`;
     }
     try {
-        birds_known = (await sql`SELECT * FROM sightings WHERE user_id = ${user.user_id} order by bird_id;`) as Bird[];
+        const sightings = await sql`SELECT *, EXTRACT(EPOCH FROM seen_at) AS date_unix FROM sightings WHERE user_id = ${user.user_id} order by bird_id;`;
+        birds_known = sightings.map((sighting: any) => ({
+            ...sighting,
+            seen_at: sighting.date_unix ? Math.floor(sighting.date_unix) : null,
+        })) as Bird[];
     } catch (error) {
         console.error("Error fetching birds known:", error);
         return;

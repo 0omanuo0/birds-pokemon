@@ -29,16 +29,16 @@ export default function HeadCard(
 
             const url = `/api/reverse-geocode?lat=${lat}&lon=${lon}`;
 
-            // fetch(url, {
-            //     headers: {
-            //         'User-Agent': 'BirdsPokemon/1.0 (manu365manu@gmail.com)',
-            //     }
-            // })
-            //     .then(response => response.json())
-            //     .then(data => {
-            //         setLocation(data.location?.split(",")[0] || "???");
-            //     })
-            //     .catch(error => console.error('Error:', error));
+            fetch(url, {
+                headers: {
+                    'User-Agent': 'BirdsPokemon/1.0 (manu365manu@gmail.com)',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    setLocation(data.location?.split(",")[0] || "???");
+                })
+                .catch(error => console.error('Error:', error));
         }, 800); // Wait 800ms before fetching
 
         return () => clearTimeout(timeoutId);
@@ -66,9 +66,33 @@ export default function HeadCard(
                     {known_bird ? selectedBird?.name || "???" : "???"}
                 </h2>
             </div>
-            <div className="text-black text-sm py-1 text-right uppercase space-x-3 font-pokemon">
-                <span>{selectedBird ? <>Seen  {(known_bird ? selectedBird?.seen?.toString() : "???") || "???"}</> : "???"}</span>
-                <span className="mx-2">{selectedBird ? <>Location  {(known_bird ? location : "???") || "???"}</> : "???"}</span>
+            <div className={((known_bird ? location : "???")?.length! <= 20 ? "space-x-3 " : " ") +  "text-black text-sm py-1 text-right uppercase font-pokemon mx-2"}>
+                <span>
+                    {selectedBird ? (
+                        <>Seen{" "}
+                            {known_bird && selectedBird?.seen_at
+                                ? (() => {
+                                        const date = new Date(selectedBird.seen_at * 1000);
+                                        return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                    })()
+                                : "???"}
+                        </>
+                    ) : "???"}
+                </span>
+                {selectedBird ? (
+                    (known_bird ? location : "???")?.length! > 20 ? (
+                        <>
+                            <br />
+                            <span className="font-pokemon-bw2">
+                                Location: {(known_bird ? location : "???") || "???"}
+                            </span>
+                        </>
+                    ) : (
+                        <span className="mx-2 font-pokemon-bw2">
+                            Location: {(known_bird ? location : "???") || "???"}
+                        </span>
+                    )
+                ) : "???"}
             </div>
         </div>
     )
