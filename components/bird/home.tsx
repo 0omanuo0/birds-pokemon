@@ -34,11 +34,16 @@ async function fetchWikipedia(scientific_name: string): Promise<any[]> {
 
     const targetSections = [
         "distribucion_y_habitat",
+        "habitat",
         "caracteristicas",
-        "estado_de_conservacion"
+        "estado_de_conservacion",
+        "canto",
+        "generalidades",
     ];
 
     console.log(sections, "sections");
+
+    console.log(sections.map(s => s.querySelector("h2[id]")?.id), "sections ids");
 
 
     sections.forEach((section, index) => {
@@ -51,7 +56,7 @@ async function fetchWikipedia(scientific_name: string): Promise<any[]> {
 
         const title = h2?.textContent?.trim() || "Sin título";
 
-        const paragraphs = Array.from(section.querySelectorAll("p"))
+        let paragraphs = Array.from(section.querySelectorAll("p"))
             .filter(p => !p.closest("sup") && !p.closest("table"))
             .map(p => {
                 // Clone the <p> to avoid altering the original DOM
@@ -62,7 +67,15 @@ async function fetchWikipedia(scientific_name: string): Promise<any[]> {
                 clean.querySelectorAll("table").forEach((el: any) => el.remove());
                 // Remove all tags except <i> and <b>
                 clean.querySelectorAll("*").forEach((el: any) => {
-                    if (el.tagName !== "I" && el.tagName !== "B") {
+                    // if is A but with rel="mw:WikiLink" replace with span with text color #007bff
+                    if (el.tagName === "A" && el.hasAttribute("rel") && el.getAttribute("rel") === "mw:WikiLink") {
+                        const span = document.createElement("I");
+                        span.style.color = "#830";
+                        span.textContent = el.textContent || "";
+                        el.replaceWith(span);
+                    }
+
+                    if (el.tagName !== "I" && el.tagName !== "B" && el.tagName !== "P") {
                         // Replace the element with its text content
                         const textNode = document.createTextNode(el.textContent || "");
                         el.replaceWith(textNode);
@@ -72,21 +85,53 @@ async function fetchWikipedia(scientific_name: string): Promise<any[]> {
             })
             .filter(text => text.length > 0);
 
+
+        if (normalizeId(title) === "canto") {
+            paragraphs = paragraphs.map((p: string) => {
+                return p.split(". ").slice(0, 1).join(". ") + ".";
+            });
+        }
+        else if (normalizeId(title) === "generalidades") {
+            paragraphs = [paragraphs[0].split(". ").slice(0, 2).join(". ")]; // only the first paragraph
+            if (!paragraphs[0].endsWith(".")) {
+                paragraphs[0] += ".";
+            }
+        }
+        else  { // paragraphs
+            paragraphs = paragraphs.map((p: string) => {
+                let r = p.split(". ").slice(0, 2).join(". ");
+                if (!r.endsWith(".")) 
+                    r += ".";
+                return r;
+            });
+        }
+
+
         if (paragraphs.length > 0) {
             result.push({
                 title,
-                body: paragraphs.join(" ")
+                body: paragraphs.join("<br><br>")
             });
         }
 
     });
 
     // split by . and select the first 3 paragraphs
-    if (result.length > 0) {
-        result.forEach(section => {
-            section.body = section.body.split(". ").slice(0, 3).join(". ");
-        });
-    }
+    // if (result.length > 0) {
+    //     result.forEach(section => {
+    //         if (normalizeId(section.title) === "generalidades")
+    //             return; // skip generalidades section
+
+    //         if (normalizeId(section.title) === "canto")
+    //             section.body = section.body.split(". ").slice(0, 1).join(". ");
+            
+    //         section.body = section.body.split(". ").slice(0, 2).join(". ");
+    //     });
+
+    //     // if(sections.body)
+    // }
+
+    console.log(result, "result");
 
     return result;
 }
@@ -177,7 +222,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
             <LateralLeft target='/' setTop="65%">{homeSvg}</LateralLeft>
 
             <section
-                className="relative md:h-[450px] md:min-h-auto w-full min-h-[550px]">
+                className="relative md:h-[500px] md:min-h-auto w-full min-h-[550px]">
                 <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
                     <Noise />
                     <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
@@ -249,7 +294,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
             </section>
             <PokeballRotation
                 startScroll={0}
-                endScroll={(sightings.length-1) * degrees_per_item}
+                endScroll={(sightings.length - 1) * degrees_per_item}
                 onWheel={(rotation) => {
                     const id = Math.round(rotation / degrees_per_item);
                     if (id < sightings.length && id >= 0) {
