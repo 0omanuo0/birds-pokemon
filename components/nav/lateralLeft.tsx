@@ -48,6 +48,8 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
         e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
     ) => {
         e.preventDefault();
+
+        router.prefetch(target || '/');
         if (isIOS) {
             setTimerTouch(setTimeout(() => {
                 router.push(target || '/');

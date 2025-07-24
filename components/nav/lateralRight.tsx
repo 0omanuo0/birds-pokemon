@@ -49,6 +49,8 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
     ) => {
         e.preventDefault();
 
+        router.prefetch(target || '/');
+
         if (isIOS) {
             setTimerTouch(setTimeout(() => {
                 if (target) {
