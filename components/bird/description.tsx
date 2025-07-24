@@ -20,12 +20,12 @@ export default function BirdDescription({ description }: { description: any }) {
                 setHeight(height === 200 ? 400 : 200);
             }}
         >
-            <div 
-            onClick={(e) => {
-                e.stopPropagation();
-                setHeight(height === 200 ? 400 : 200);
-            }}
-            className="absolute -top-2 left-0 right-0 w-full h-8 z-50 bg-transparent ">
+            <div
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setHeight(height === 200 ? 400 : 200);
+                }}
+                className="absolute -top-2 left-0 right-0 w-full h-8 z-50 bg-transparent ">
 
             </div>
             <div className="h-[2px] w-[180px] mx-auto bg-neutral-300 my-1"></div>
@@ -39,9 +39,14 @@ export default function BirdDescription({ description }: { description: any }) {
                     e.stopPropagation();
                 }}
             >
-                <div className="scrollable-pattern px-2 pt-1 min-h-[150px]">
-                    <h2 className="font-pokemon text-black text-2xl">Descripcion:</h2>
-                    <div className="text-sm text-neutral-800 p-1 leading-4">
+                <div className="scrollable-pattern px-2 pt-1 min-h-[var(--desc-height)]">
+                    <h2 className="font-pokemon-bw2 text-black"
+                        style={{
+                            lineHeight: "24px",
+                            fontSize: "14px !important"
+                        }}
+                    >Descripción:</h2>
+                    <div className="text-sm text-neutral-800 p-1 leading-4 pb-8">
                         {description && description.map((section: any, index: number) => (
                             <div key={index} className="mb-2">
                                 {index > 0 && <h3 className="font-bold text-lg">{section.title}</h3>}
