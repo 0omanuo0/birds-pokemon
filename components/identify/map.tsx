@@ -11,9 +11,10 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-    iconRetinaUrl: markerIcon2x,
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
+    iconRetinaUrl: "/img/marker.svg",
+    iconSize: [40, 50],
+    iconUrl: "/img/marker.svg",
+    shadowUrl: "/img/marker-shadow.png",
 });
 
 function ContextMenuListener({ onRightClick }: { onRightClick: (latlng: L.LatLng) => void }) {
