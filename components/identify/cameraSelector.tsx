@@ -16,6 +16,14 @@ export default function CameraSelector({
     const [options, setOptions] = useState<
         { id: string; label: string; isFacing: boolean }[]
     >([]);
+
+    const [savedId, _] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('selected_camera_id') || '';
+        }
+        return '';
+    });
+
     useEffect(() => {
         const init = async () => {
             // 1) Must be a secure context
@@ -62,16 +70,15 @@ export default function CameraSelector({
                     label: d.label || `Camera ${d.deviceId}`,
                     isFacing: false,
                 }));
-                console.log(opts);
+
                 setOptions(opts);
 
                 // If we have a saved camera ID, use it
-                const savedId = localStorage.getItem('selectedCameraId');
                 if (savedId && opts.some((o) => o.id === savedId)) {
                     setSelectedId(savedId);
                 } else {
                     // Fallback to first available camera
-                    setSelectedId(opts[0].id);
+                    setSelectedId(opts[1].id);
                 }
 
             }
@@ -100,9 +107,13 @@ export default function CameraSelector({
             if (!opt) return;
 
             const constraints: MediaStreamConstraints = {
-                video: opt.isFacing
+                video: {
+                    ...(opt.isFacing
                     ? { facingMode: opt.id as 'user' | 'environment' }
-                    : { deviceId: { exact: opt.id } },
+                        : { deviceId: { exact: opt.id } }),
+                    width: { ideal: 1920, max: 3840 },
+                    height: { ideal: 1080, max: 2160 },
+                },
             };
 
             try {
@@ -136,14 +147,16 @@ export default function CameraSelector({
         document.addEventListener('visibilitychange', handleVisibility);
 
         startCamera();
-
-        console.log(selectedId, options);
+        // save in localStorage
+        localStorage.setItem('selected_camera_id', selectedId);
 
         return () => {
             isActive = false;
             document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, [selectedId, options]);
+
+
     return (
         <div className="">
             {
