@@ -16,14 +16,81 @@ import Noise from '@/components/turbulenceNoise';
 
 
 export default function IdentifyPage() {
-
-
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
 
     const [showDialog, setShowDialog] = useState(false);
     const [result, setResult] = useState<any | null>(null);
     const [image, setImage] = useState<Blob | null>(null);
+
+    const [scale, setScale] = useState(1);
+
+
+    function uploadPhoto() {
+        // upload photo, first show dialog to select file and then upload
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpg,image/jpeg';
+        input.onchange = async (event) => {
+            const file = (event.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('image', file);
+            setImage(file); // Store the image blob for dialog display
+            console.log('Sending image for prediction:', file.size);
+
+            try {
+                const response = await fetch('/api/identify', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!response.ok) {
+                    alert('Failed to fetch prediction: ' + response.statusText);
+                    console.error('Failed to fetch prediction:', response.statusText);
+                    return;
+                }
+                const data = await response.json();
+                console.log('Prediction result:', data);
+                setResult(data);
+                setShowDialog(true);
+                const birdCanvas = document.getElementById('birdCanvas') as HTMLCanvasElement;
+                const birdCtx = birdCanvas.getContext('2d');
+                if (birdCtx) {
+                    const image = new Image();
+                    image.src = URL.createObjectURL(file);
+                    image.onload = () => {
+                        birdCtx.clearRect(0, 0, birdCanvas.width, birdCanvas.height);
+
+                        // Calculate aspect ratios
+                        const canvasAspect = birdCanvas.width / birdCanvas.height;
+                        const imageAspect = image.width / image.height;
+
+                        let sx = 0, sy = 0, sWidth = image.width, sHeight = image.height;
+
+                        if (imageAspect > canvasAspect) {
+                            // Image is wider: crop sides
+                            sWidth = image.height * canvasAspect;
+                            sx = (image.width - sWidth) / 2;
+                        } else {
+                            // Image is taller: crop top/bottom
+                            sHeight = image.width / canvasAspect;
+                            sy = (image.height - sHeight) / 2;
+                        }
+
+                        birdCtx.drawImage(
+                            image,
+                            sx, sy, sWidth, sHeight,
+                            0, 0, birdCanvas.width, birdCanvas.height
+                        );
+                    };
+                }
+            } catch (error) {
+                console.error('Error during prediction:', error);
+            }
+        }
+        input.click();
+    }
 
     function predict() {
         if (!videoRef.current || !streamRef.current) {
@@ -67,7 +134,29 @@ export default function IdentifyPage() {
                 const birdCtx = birdCanvas.getContext('2d');
                 if (birdCtx && videoRef.current) {
                     birdCtx.clearRect(0, 0, birdCanvas.width, birdCanvas.height);
-                    birdCtx.drawImage(videoRef.current, 0, 0, birdCanvas.width, birdCanvas.height);
+                    const image = new Image();
+                    image.src = URL.createObjectURL(blob);
+                    image.onload = () => {
+                        // Calculate aspect ratios
+                        const canvasAspect = birdCanvas.width / birdCanvas.height;
+                        const imageAspect = image.width / image.height;
+
+                        let sx = 0, sy = 0, sWidth = image.width, sHeight = image.height;
+                        if (imageAspect > canvasAspect) {
+                            // Image is wider: crop sides
+                            sWidth = image.height * canvasAspect;
+                            sx = (image.width - sWidth) / 2;
+                        } else {
+                            // Image is taller: crop top/bottom
+                            sHeight = image.width / canvasAspect;
+                            sy = (image.height - sHeight) / 2;
+                        }
+                        birdCtx.drawImage(
+                            image,
+                            sx, sy, sWidth, sHeight,
+                            0, 0, birdCanvas.width, birdCanvas.height
+                        );
+                    };
                 }
             } catch (error) {
                 console.error('Error during prediction:', error);
@@ -110,6 +199,7 @@ export default function IdentifyPage() {
                                     <CameraComponent
                                         videoRef={videoRef}
                                         streamRef={streamRef}
+                                        scale={scale}
                                     />
                                     <Dialog showDialog={showDialog} image={image} setShowDialog={setShowDialog} result={result} />
                                 </div>
@@ -117,69 +207,7 @@ export default function IdentifyPage() {
                                 <div className={"absolute bottom-0 right-0 w-fit h-16 m-4  flex items-end justify-center" + (showDialog ? " hidden" : "")}>
                                     <button
                                         onClick={() => {
-                                            // upload photo, first show dialog to select file and then upload
-                                            const input = document.createElement('input');
-                                            input.type = 'file';
-                                            input.accept = 'image/jpg,image/jpeg';
-                                            input.onchange = async (event) => {
-                                                const file = (event.target as HTMLInputElement).files?.[0];
-                                                if (!file) return;
-
-                                                const formData = new FormData();
-                                                formData.append('image', file);
-                                                setImage(file); // Store the image blob for dialog display
-                                                console.log('Sending image for prediction:', file.size);
-
-                                                try {
-                                                    const response = await fetch('/api/identify', {
-                                                        method: 'POST',
-                                                        body: formData,
-                                                    });
-                                                    if (!response.ok) {
-                                                        alert('Failed to fetch prediction: ' + response.statusText);
-                                                        console.error('Failed to fetch prediction:', response.statusText);
-                                                        return;
-                                                    }
-                                                    const data = await response.json();
-                                                    console.log('Prediction result:', data);
-                                                    setResult(data);
-                                                    setShowDialog(true);
-                                                    const birdCanvas = document.getElementById('birdCanvas') as HTMLCanvasElement;
-                                                    const birdCtx = birdCanvas.getContext('2d');
-                                                    if (birdCtx) {
-                                                        const image = new Image();
-                                                        image.src = URL.createObjectURL(file);
-                                                        image.onload = () => {
-                                                            birdCtx.clearRect(0, 0, birdCanvas.width, birdCanvas.height);
-
-                                                            // Calculate aspect ratios
-                                                            const canvasAspect = birdCanvas.width / birdCanvas.height;
-                                                            const imageAspect = image.width / image.height;
-
-                                                            let sx = 0, sy = 0, sWidth = image.width, sHeight = image.height;
-
-                                                            if (imageAspect > canvasAspect) {
-                                                                // Image is wider: crop sides
-                                                                sWidth = image.height * canvasAspect;
-                                                                sx = (image.width - sWidth) / 2;
-                                                            } else {
-                                                                // Image is taller: crop top/bottom
-                                                                sHeight = image.width / canvasAspect;
-                                                                sy = (image.height - sHeight) / 2;
-                                                            }
-
-                                                            birdCtx.drawImage(
-                                                                image,
-                                                                sx, sy, sWidth, sHeight,
-                                                                0, 0, birdCanvas.width, birdCanvas.height
-                                                            );
-                                                        };
-                                                    }
-                                                } catch (error) {
-                                                    console.error('Error during prediction:', error);
-                                                }
-                                            }
-                                            input.click();
+                                            uploadPhoto();
                                         }}
                                         className="w-10 h-10 px-1 py-1 z-[99] bg-red-400 border-2 border-neutral-700/70">{ImageAddSvg}</button>
                                 </div>
@@ -192,9 +220,12 @@ export default function IdentifyPage() {
                         </div>
                     </section>
                     <PokeballRotation
-                        onWheel={() => { }}
+                        onWheel={(e) => {
+                            if (e < 0) return;
+                            setScale(e / 32 + 1);
+                        }}
                         startScroll={0}
-                        endScroll={0}
+                        endScroll={32 * 4}
                         onPress={() => {
                             predict();
                         }}
