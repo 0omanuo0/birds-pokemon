@@ -47,6 +47,21 @@ export async function POST(req: Request) {
     console.log('Prediction result:', result);
     const name = result.prediction;
     const birdData = await fetchBirdData(name);
+
+    if(birdData === null) {
+        return new Response(
+            JSON.stringify({
+                message: 'No bird data found for the prediction',
+                status: 'error',
+            }),
+            {
+                status: 404,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+    }
     // append the bird data to the result
     result = {
         ...result,
