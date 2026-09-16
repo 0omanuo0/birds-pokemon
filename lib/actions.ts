@@ -1,6 +1,7 @@
 "use server";
 
 import { neon } from "@neondatabase/serverless";
+import { revalidatePath } from "next/cache";
 
 export async function pushBird(
     userId: number,
@@ -25,6 +26,8 @@ export async function pushBird(
             INSERT INTO sightings (user_id, bird_id, location, photo_url, seen_at)
             VALUES (${userId}, ${birdId}, ${location}, ${img_url}, ${timestamp}::timestamptz);
         `;
+        revalidatePath("/");
+        revalidatePath(`/bird/${birdId}`);
         return { success: true };
     } catch (error) {
         console.error("Error inserting sighting:", error);

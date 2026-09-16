@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { clear } from 'console';
 
 
-export default function LateralLeft({children, target, setTop}: { children?: React.JSX.Element, target?: string, setTop?: string | number }) {
+export default function LateralLeft({ children, target, setTop }: { children?: React.JSX.Element, target?: string, setTop?: string | number }) {
     const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     const [offsetRight, setOffsetRight] = useState(0);
     const [timerTouch, setTimerTouch] = useState<NodeJS.Timeout | null>(null);
     const draggingRef = useRef(false);
@@ -52,6 +52,11 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
         router.prefetch(target || '/');
         if (isIOS) {
             setTimerTouch(setTimeout(() => {
+                const audio_ = new Audio("/audio/SFX_SWITCH.wav");
+                audio_.volume = 0.02;
+                audio_.play().catch(err => {
+                    console.error("Error playing sound:", err);
+                });
                 router.push(target || '/');
             }, 500));
         }
@@ -82,6 +87,11 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
     useEffect(() => {
         // if arrives to 80, navigate to /
         if (offsetRight === 80) {
+            const audio_ = new Audio("/audio/SFX_SWITCH.wav");
+            audio_.volume = 0.02;
+            audio_.play().catch(err => {
+                console.error("Error playing sound:", err);
+            });
             router.push(target || '/');
         }
     }, [offsetRight]);
@@ -93,13 +103,18 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => {
                 e.preventDefault()
+                const audio_ = new Audio("/audio/SFX_SWITCH.wav");
+                audio_.volume = 0.02;
+                audio_.play().catch(err => {
+                    console.error("Error playing sound:", err);
+                });
                 router.push(target || '/');
             }}
             style={{
                 clipPath: "polygon(85% 0, 100% 15%, 100% 85%, 85% 100%, 0 100%, 0 0)",
                 left: `${-80 + offsetRight}px`,
                 position: 'absolute',
-                bottom:  "170px",
+                bottom: "170px",
                 cursor: 'grab',
                 transition: 'left 0.2s ease-out',
                 background: "linear-gradient(160deg, #e85d63, #c63f44 70%)",
@@ -129,10 +144,10 @@ export default function LateralLeft({children, target, setTop}: { children?: Rea
 
 
             <div className='flex items-center justify-center w-[28px] h-[28px] mx-[2px]'>
-                {children }
+                {children}
             </div>
 
-            
+
         </div>
     );
 }

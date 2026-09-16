@@ -29,7 +29,6 @@ export default function Dialog({ showDialog, image, setShowDialog, result }: {
     }, [showDialog]);
 
     const { user } = useUser();
-    console.log("User in dialog:", user);
 
 
     return (

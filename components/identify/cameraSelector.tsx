@@ -109,7 +109,7 @@ export default function CameraSelector({
             const constraints: MediaStreamConstraints = {
                 video: {
                     ...(opt.isFacing
-                    ? { facingMode: opt.id as 'user' | 'environment' }
+                        ? { facingMode: opt.id as 'user' | 'environment' }
                         : { deviceId: { exact: opt.id } }),
                     width: { ideal: 1920, max: 3840 },
                     height: { ideal: 1080, max: 2160 },

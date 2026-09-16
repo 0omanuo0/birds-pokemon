@@ -1,31 +1,69 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
-export default function PokeballRotation(
-    { onWheel, startScroll, endScroll, onPress, onLongPress }
-        : { onWheel?: (rotation: number) => void; startScroll: number; endScroll: number; onPress?: () => void; onLongPress?: () => void; }
+export type PokeballRotationHandle = {
+    // Animates the wheel to the given absolute rotation (degrees), e.g. index * degrees_per_item.
+    // Imperative on purpose: no prop/effect round trip for the parent to command a position.
+    rotateTo: (rotation: number) => void;
+};
+
+const PokeballRotation = forwardRef<PokeballRotationHandle, {
+    onWheel?: (rotation: number) => void; startScroll: number; endScroll: number; onPress?: () => void; onLongPress?: () => void;
+}>(function PokeballRotation(
+    { onWheel, startScroll, endScroll, onPress, onLongPress }, ref
 ) {
     const [pokRotation, setPokRotation] = useState(startScroll);
     const [isRotating, setIsRotating] = useState(false);
     const [startCords, setStartCoords] = useState({ x: 0, y: 0 });
-    const [, setVelocity] = useState(0);
-    const inertiaIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    // velocity is never read for rendering, only used by the physics loop below,
+    // so it belongs in a ref rather than state.
+    const velocityRef = useRef(0);
+    const MAX_VELOCITY = 20;
+    // Mirrors pokRotation so the physics loop always reads the latest value
+    // synchronously (no stale closures), without needing React's functional
+    // setState form.
+    const pokRotationRef = useRef(startScroll);
+    // requestAnimationFrame instead of setInterval: a plain interval can queue
+    // up overdue ticks while the main thread is busy (exactly what happens
+    // scrolling heavily) and then fire them in a tight back-to-back burst once
+    // free, each one doing a cross-component setState — enough of those in one
+    // synchronous burst is what was tripping "Maximum update depth exceeded".
+    // rAF never backlogs like that: the browser coalesces to at most one call
+    // per actual rendered frame.
+    const inertiaFrameRef = useRef<number | null>(null);
+    const lastFrameTimeRef = useRef(0);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pokeballCenterRef = useRef<HTMLButtonElement>(null);
 
+    // Notifies the parent imperatively, at the moment a new rotation is computed —
+    // deliberately NOT via a useEffect watching pokRotation/startScroll/endScroll,
+    // which previously round-tripped through the parent's onWheel -> setState ->
+    // re-render -> new props -> effect fires again.
+    function setRotation(next: number) {
+        pokRotationRef.current = next;
+        setPokRotation(next);
+        const clamped = Math.min(Math.max(next, startScroll), endScroll);
+        onWheel?.(clamped);
+    }
+
+    const clampedRotation = Math.min(Math.max(pokRotation, startScroll), endScroll);
 
     useEffect(() => {
-        // onwheel
-        // console.log("onWheel", pokRotation);
-        onWheel?.(pokRotation);
-    }, [pokRotation]);
+        // sync the parent once on mount; subsequent updates go through setRotation above
+        onWheel?.(clampedRotation);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    function stopInertiaLoop() {
+        if (inertiaFrameRef.current !== null) {
+            cancelAnimationFrame(inertiaFrameRef.current);
+            inertiaFrameRef.current = null;
+        }
+    }
 
     function startRotation(e: any) {
-        if (inertiaIntervalRef.current) {
-            clearInterval(inertiaIntervalRef.current);
-            inertiaIntervalRef.current = null;
-        }
+        stopInertiaLoop();
 
         let centerX = 0;
         let centerY = 0;
@@ -58,53 +96,54 @@ export default function PokeballRotation(
         const startAngle = Math.atan2(startCords.y, startCords.x) * (180 / Math.PI);
         const currentAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
         const angleDifference = (currentAngle - startAngle);
-        // console.log(angleDifference);
 
         if (isRotating) {
-            setPokRotation((prevRotation) => {
-                setVelocity(angleDifference); // Update velocity
-                // console.log(prevRotation, angleDifference);
-                return prevRotation + angleDifference;
-            });
+            velocityRef.current = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, angleDifference));
+            setRotation(pokRotationRef.current + angleDifference);
             setStartCoords({ x: deltaX, y: deltaY });
         }
     }
 
     function applyInertia() {
-        if (inertiaIntervalRef.current) clearInterval(inertiaIntervalRef.current);
+        stopInertiaLoop();
+        lastFrameTimeRef.current = performance.now();
 
-        inertiaIntervalRef.current =
-            setInterval(() =>
-                setVelocity((prevVelocity) => {
+        function tick(now: number) {
+            // steps: how many "10ms units" elapsed, so the physics feel the same
+            // regardless of actual frame rate. Capped so a stalled/backgrounded
+            // tab doesn't resume with one giant jump.
+            const steps = Math.min((now - lastFrameTimeRef.current) / 10, 5);
+            lastFrameTimeRef.current = now;
 
-                    if (Math.abs(prevVelocity) < 0.001) {
-                        if (inertiaIntervalRef.current) clearInterval(inertiaIntervalRef.current);
+            const prevVelocity = velocityRef.current;
+            const prevRotation = pokRotationRef.current;
 
-                        setPokRotation((prevRotation) => {
-                            if (prevRotation < 0)
-                                return Math.min(0, prevRotation + Math.abs(prevRotation) * 0.1); // Spring back to 0
-                            else if (prevRotation > endScroll)
-                                return Math.max(endScroll, prevRotation - Math.abs(prevRotation - endScroll) * 0.1); // Spring back to endScroll
+            if (Math.abs(prevVelocity) < 0.001) {
+                let settled = prevRotation;
+                if (prevRotation < 0)
+                    settled = Math.min(0, prevRotation + Math.abs(prevRotation) * 0.1); // Spring back to 0
+                else if (prevRotation > endScroll)
+                    settled = Math.max(endScroll, prevRotation - Math.abs(prevRotation - endScroll) * 0.1); // Spring back to endScroll
 
-                            return prevRotation;
-                        });
-                        return 0;
-                    }
+                setRotation(settled);
+                velocityRef.current = 0;
+                inertiaFrameRef.current = null;
+                return;
+            }
 
-                    setPokRotation((prevRotation) => {
-                        const newRotation = prevRotation + prevVelocity;
+            let newRotation = prevRotation + prevVelocity * steps;
+            if (newRotation < 0)
+                newRotation = Math.min(0, newRotation + Math.abs(newRotation) * 0.1); // Spring back to 0
+            else if (newRotation > endScroll)
+                newRotation = Math.max(endScroll, newRotation - Math.abs(newRotation - endScroll) * 0.1); // Spring back to endScroll
 
-                        if (newRotation < 0)
-                            return Math.min(0, newRotation + Math.abs(newRotation) * 0.1); // Spring back to 0
-                        else if (newRotation > endScroll)
-                            return Math.max(endScroll, newRotation - Math.abs(newRotation - endScroll) * 0.1); // Spring back to endScroll
+            setRotation(newRotation);
+            velocityRef.current = prevVelocity * Math.pow(0.95, steps); // Apply friction
 
-                        return newRotation;
-                    });
+            inertiaFrameRef.current = requestAnimationFrame(tick);
+        }
 
-                    return prevVelocity * 0.95; // Apply friction
-                })
-                , 10) // Roughly 60fps
+        inertiaFrameRef.current = requestAnimationFrame(tick);
     }
 
     function stopRotation() {
@@ -112,24 +151,43 @@ export default function PokeballRotation(
         applyInertia();
     }
 
+    // Snaps the wheel to an absolute rotation the parent asks for (e.g. when the
+    // underlying list is swapped and we want to land on the same bird's new index).
+    // No animation on purpose: the new index can be arbitrarily far from the old
+    // one (e.g. jumping to item 340), so easing there would spin the wheel through
+    // everything in between, which looks awful — this just shows where it landed.
+    function rotateTo(target: number) {
+        stopInertiaLoop();
+        velocityRef.current = 0;
+        const clampedTarget = Math.min(Math.max(target, startScroll), endScroll);
+        setRotation(clampedTarget);
+    }
+
+    useImperativeHandle(ref, () => ({ rotateTo }));
+
     // when loads the component make a small animation changing the speed to show that is able to rotate
     useEffect(() => {
         // get the localstorage value for not_new_user
         const notNewUser = localStorage.getItem("not_new_user");
         if (parseInt(notNewUser || "0") > 3) return;
 
-        setTimeout(() => {
-            setVelocity(-1);
+        const t1 = setTimeout(() => {
+            velocityRef.current = -1;
             applyInertia();
         }, 1000);
 
-        setTimeout(() => {
-            setVelocity(-0.5);
+        const t2 = setTimeout(() => {
+            velocityRef.current = -0.5;
             applyInertia();
         }, 1500);
 
         // set the localstorage value for not_new_user to +1
         localStorage.setItem("not_new_user", (parseInt(notNewUser || "0") + 1).toString());
+
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
 
     }, [startScroll]);
 
@@ -143,7 +201,7 @@ export default function PokeballRotation(
                 onMouseLeave={stopRotation}
                 onWheel={(e) => {
                     e.preventDefault();
-                    setVelocity((prevVelocity) => prevVelocity + e.deltaY * 0.05);
+                    velocityRef.current = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, velocityRef.current + e.deltaY * 0.05));
 
                     if (timeoutRef.current) {
                         clearTimeout(timeoutRef.current);
@@ -170,14 +228,19 @@ export default function PokeballRotation(
                     bottom: "0",
                     left: "50%",
                     transformOrigin: "center",
-                    transform: `translateX(-50%) translateY(50%) rotate(${pokRotation.toFixed(2)}deg)`,
+                    transform: `translateX(-50%) translateY(50%) rotate(${clampedRotation.toFixed(2)}deg)`,
                 }}
                 className="shadow-lg bg-neutral-300 border-neutral-800 border-8 w-full aspect-square h-auto rounded-full absolute overflow-hidden"
             >
                 <div className="bg-red-700/70 w-full h-1/2 border-b-[10px] border-neutral-800"></div>
             </div>
             <button
-                onClick={onPress}
+                onClick={(e) => {
+                    e.preventDefault();
+                    if (onPress) {
+                        onPress();
+                    }
+                }}
                 onContextMenu={(e) => {
                     e.preventDefault();
                     if (onLongPress) {
@@ -191,4 +254,6 @@ export default function PokeballRotation(
             </button>
         </div>
     );
-}
+});
+
+export default PokeballRotation;

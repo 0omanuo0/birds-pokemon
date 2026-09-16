@@ -124,7 +124,7 @@ async function fetchWikipedia(scientific_name: string): Promise<any[]> {
 
     //         if (normalizeId(section.title) === "canto")
     //             section.body = section.body.split(". ").slice(0, 1).join(". ");
-            
+
     //         section.body = section.body.split(". ").slice(0, 2).join(". ");
     //     });
 

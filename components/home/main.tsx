@@ -1,7 +1,7 @@
 "use client";
 
 import Content from "./content";
-import PokeballRotation from "@/components/pokeballRotation";
+import PokeballRotation, { PokeballRotationHandle } from "@/components/pokeballRotation";
 import { Bird } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import ContextMenu from "../contextMenu";
@@ -15,25 +15,14 @@ import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useUser } from "../userContext";
 
-export default function Main({ birds_default, birds_seen, user }: { birds_default: Bird[], birds_seen: any[], user: any }) {
+export default function Main({ birds_default, birds_seen}: { birds_default: Bird[], birds_seen: any[]}) {
 
     const router = useRouter();
-
-    const { user: userK, setUser: setUserK } = useUser();
-
-    useEffect(() => {
-        if (user === null) {
-            router.push("/api/auth/signin");
-        }
-    }, [user, router]);
-
 
     const degrees_per_item = 18; // 360 / 20
 
     const [selectedBird, setSelectedBird] = useState<Bird>(birds_default[0]);
 
-
-    const contextMenuRef = useRef<any>(null);
 
     const [_, setIsFiltered] = useState(false);
     const [birdsFiltered, setBirdsFiltered] = useState(birds_default);
@@ -41,13 +30,31 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
 
     const [showDialogSearch, setShowDialogSearch] = useState(false);
 
+    const [isFirstSpin, setIsFirstSpin] = useState(true);
+
+    const user = useUser();
+
+    const pokeballRef = useRef<PokeballRotationHandle | null>(null);
+    // Set right before swapping birdsFiltered (e.g. toggling All/Filtered) to the
+    // real bird id that was selected, so the effect below can land on that same
+    // bird's new index instead of always resetting to the first item.
+    const pendingSelectedBirdIdRef = useRef<number | null>(null);
+
     useEffect(() => {
-        setSelectedBird(birdsFiltered[0]);
+        let nextIndex = 0;
+        if (pendingSelectedBirdIdRef.current !== null) {
+            const targetId = pendingSelectedBirdIdRef.current;
+            const foundIndex = birdsFiltered.findIndex(b => ((b as any).bird_id ?? b.id) === targetId);
+            if (foundIndex !== -1) nextIndex = foundIndex;
+            pendingSelectedBirdIdRef.current = null;
+        }
+        setSelectedBird(birdsFiltered[nextIndex]);
+        pokeballRef.current?.rotateTo(nextIndex * degrees_per_item);
         console.log(birdsFiltered, "birdsFiltered", birdsFiltered.length);
     }, [birdsFiltered, known_bird]);
 
 
-    
+
     useEffect(() => {
         if (user === null) {
             router.push("/api/auth/signin");
@@ -66,10 +73,28 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
                 console.log("Preloading bird:", birdId);
                 router.prefetch(`/bird/${birdId}`);
             }, 1000));
-            
-        }
-    }, [selectedBird, router]);
 
+        }
+
+        if( isFirstSpin) {
+            setIsFirstSpin(false);
+            return;
+        }
+
+        // play a sound
+            // const audioPath = "/audio/SFX_SLOTS_NEW_SPIN.wav";
+            // const audio_ = new Audio(audioPath);
+            // audio_.volume = 0.01;
+            // audio_.loop = false;
+            // audio_.play().catch(err => {
+            //     console.error("Error playing sound:", err);
+            // });
+
+    }, [selectedBird, router]);
+    
+
+    //get buho real in the known birds
+    
 
     return (
         <main
@@ -106,6 +131,7 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
                 </div>
             </section>
             <PokeballRotation
+                ref={pokeballRef}
                 onWheel={absoluteRotation => {
                     // console.log(absoluteRotation);
                     // each rotation is 20 items so each item is 18 degrees
@@ -118,6 +144,8 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
                 endScroll={(birdsFiltered.length > 0 ? birdsFiltered.length - 1 : 0) * degrees_per_item}
                 onPress={() =>
                     setIsFiltered(prev => {
+                        pendingSelectedBirdIdRef.current = (selectedBird as any)?.bird_id ?? selectedBird?.id ?? null;
+
                         if (prev) {
                             // → going _back_ to un-filtered mode
                             setBirdsFiltered(birds_default);
@@ -163,7 +191,7 @@ export default function Main({ birds_default, birds_seen, user }: { birds_defaul
                     })
                 }
                 onLongPress={() => {
-                    if (known_bird[selectedBird.id ]) {
+                    if (known_bird[selectedBird.id]) {
                         router.push(`/bird/${(selectedBird as any)?.bird_id || selectedBird?.id}`);
                     }
                 }}

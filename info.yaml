@@ -1,0 +1,4 @@
+ai: https://huggingface.co/timm/eva02_large_patch14_clip_336.merged2b_ft_inat21/blob/main/config.json
+birdnet: https://birdnet-team.github.io/BirdNET-Analyzer/installation.html # BirdNET Analyzer audio
+cssclip: https://www.cssportal.com/css-clip-path-generator/
+pixelarticons: https://pixelarticons.com/

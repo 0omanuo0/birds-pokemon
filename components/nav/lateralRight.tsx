@@ -4,9 +4,9 @@ import { arrowBoxLeftSvg, CameraSvg } from '../imageSvg';
 import { useRouter } from 'next/navigation';
 
 
-export default function LateralRight({children, target, setTop, onAction}: { children?: React.JSX.Element, target?: string, setTop? :  string | number , onAction?: () => void }) {
+export default function LateralRight({ children, target, setTop, onAction }: { children?: React.JSX.Element, target?: string, setTop?: string | number, onAction?: () => void }) {
     const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     const [offsetRight, setOffsetRight] = useState(0);
     const [timerTouch, setTimerTouch] = useState<NodeJS.Timeout | null>(null);
     const draggingRef = useRef(false);
@@ -55,7 +55,18 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
             setTimerTouch(setTimeout(() => {
                 if (target) {
                     router.push(target);
+                    const audio_ = new Audio("/audio/SFX_SWITCH.wav");
+                    audio_.volume = 0.01;
+                    audio_.play().catch(err => {
+                        console.error("Error playing sound:", err);
+                    });
+
                 } else {
+                    const audio_ = new Audio("/audio/Ruby_0005.wav");
+                    audio_.volume = 0.5;
+                    audio_.play().catch(err => {
+                        console.error("Error playing sound:", err);
+                    });
                     onAction?.();
                 }
                 clearTimeout(timerTouch!);
@@ -91,7 +102,17 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
         if (offsetRight === -80) {
             if (target) {
                 router.push(target);
+                const audio_ = new Audio("/audio/SFX_SWITCH.wav");
+                audio_.volume = 0.01;
+                audio_.play().catch(err => {
+                    console.error("Error playing sound:", err);
+                });
             } else if (onAction) {
+                const audio_ = new Audio("/audio/Ruby_0005.wav");
+                audio_.volume = 0.5;
+                audio_.play().catch(err => {
+                    console.error("Error playing sound:", err);
+                });
                 onAction();
             }
             setTimeout(() => {
@@ -116,8 +137,18 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
                 e.preventDefault()
                 e.stopPropagation();
                 if (target) {
+                    const audio_ = new Audio("/audio/SFX_SWITCH.wav");
+                    audio_.volume = 0.01;
+                    audio_.play().catch(err => {
+                        console.error("Error playing sound:", err);
+                    });
                     router.push(target);
                 } else {
+                    const audio_ = new Audio("/audio/Ruby_0005.wav");
+                    audio_.volume = 0.5;
+                    audio_.play().catch(err => {
+                        console.error("Error playing sound:", err);
+                    });
                     onAction?.();
                 }
             }}
@@ -125,7 +156,7 @@ export default function LateralRight({children, target, setTop, onAction}: { chi
                 clipPath: "polygon(20% 0, 100% 0, 100% 100%, 20% 100%, 5% 85%, 5% 15%)",
                 right: `${-80 - offsetRight}px`,
                 position: 'absolute',
-                bottom: "170px", 
+                bottom: "170px",
                 cursor: 'grab',
                 transition: 'right 0.2s ease-out',
                 background: "linear-gradient(160deg, #e85d63, #c63f44 70%)",

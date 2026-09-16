@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 type User = any;
 
@@ -11,8 +11,12 @@ type UserContextType = {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider = ({ children, userD }: { children: ReactNode, userD:any | null }) => {
+export const UserProvider = ({ children, userD }: { children: ReactNode, userD: any | null }) => {
     const [user, setUser] = useState<User | null>(userD);
+
+    useEffect(() => {
+        setUser(userD);
+    }, [userD]);
 
     return (
         <UserContext.Provider value={{ user, setUser }}>
