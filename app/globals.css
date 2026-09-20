@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
+/* always dark: the device backdrop sits on this, so a light value showed through as white */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,10 +13,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* DeviceScreen: page content eases in while the shell's screen height animates */
+@keyframes device-screen-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
@@ -56,6 +61,13 @@ div {
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.5);
+  }
+
+  .font-pokemon-ns {
+    font-family: 'PokemonBW', sans-serif;
+    @apply tracking-wider;
+    /* blocky shadow (no blur) */
+    /* text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5); */
   }
 
   .font-pokemon-smaller {
@@ -104,47 +116,63 @@ div {
 
 
 
-@keyframes noise-stable {
-  0% {
-    opacity: 0.201;
+  @keyframes noise-stable {
+    0% {
+      opacity: 0.201;
+    }
+
+    100% {
+      opacity: 0.2;
+    }
   }
 
-  100% {
-    opacity: 0.2;
+  .bg-main-image {
+    position: relative;
+    background-image: url('/img/container_image_main.svg');
+    background-size: cover;
   }
-}
 
-.bg-main-image {
+
+  .scrollable-pattern {
+    content: '';
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(to right, rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-attachment: scroll;
+    background-origin: content-box;
+  }
+
+  .description-size {
+    height: calc(var(--desc-height)+12px+32px)
+  }
+
+  .description-size-article {
+    height: calc(var(--desc-height))
+  }
+
+
+
+.details-bg {
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.10) 1px, transparent 1px), 
+                     linear-gradient(to bottom, rgba(0, 0, 0, 0.10) 1px, transparent 1px);
+  background-size: 25px 25px;
   position: relative;
-  background-image: url('/img/container_image_main.svg');
-  background-size: cover;
 }
 
-
-.scrollable-pattern {
-  content: '';
+.details-bg::after {
+  content: "";
+  position: absolute;
   inset: 0;
-  z-index: 0;
-  background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
-  background-size: 20px 20px;
-  background-attachment: scroll;
-  background-origin: content-box;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px), 
+                     linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 5px 5px;
   pointer-events: none;
 }
 
-.description-size {
-  height: calc(var(--desc-height)+12px+32px)
-}
-
-.description-size-article {
-  height: calc(var(--desc-height))
-}
-
-
-
-/* .shining::before {
+  /* .shining::before {
     content: '';
     position: absolute;
     top: -100%;

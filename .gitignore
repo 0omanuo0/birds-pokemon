@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 certificates
+
+# design reference mockups, not part of the app
+/public/mockups/

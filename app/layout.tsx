@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import FullscreenOnTap from "@/components/fullscreenOnTap";
+import DeviceShell from "@/components/device/deviceShell";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./roundedCorners.css";
@@ -61,8 +63,9 @@ export default async function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased text-white`}
             >
+                <FullscreenOnTap />
                 <Providers session={session} user={user}>
-                    {children}
+                    <DeviceShell>{children}</DeviceShell>
                 </Providers>
             </body>
         </html>
