@@ -19,6 +19,7 @@
     "leaflet-defaulticon-compatibility": "^0.1.2",
     "next": "^15.3.5",
     "next-auth": "^4.24.11",
+    "node-html-parser": "^9.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-flatpickr": "^4.0.10",
