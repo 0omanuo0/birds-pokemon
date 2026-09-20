@@ -118,7 +118,7 @@ export default function Dialog({ showDialog, image, setShowDialog, result }: {
                         }
                     </ul>
                 </div>
-                <div className='absolute -top-0 right-0 bg-black'>
+                <div className='absolute -top-0 right-0 bg-black'> 
                     <button className='text-red-400 text-4xl font-pokemon pl-4 pr-3 pb-1' onClick={() => setShowDialog(false)}>x</button>
                 </div>
                 <div className="absolute bottom-0 left-0 w-full flex justify-center">
@@ -130,7 +130,7 @@ export default function Dialog({ showDialog, image, setShowDialog, result }: {
                         className="bg-yellow-400 text-black text-xl tracking-wider pt-2 font-pokemon px-4 py-1 w-30 shadow-md hover:bg-yellow-500 transition-colors cursor-pointer"
                         onClick={() => {
                             const uuid = crypto.randomUUID();
-                            pushBird(user?.user_id, result.bird.id, uuid, location ? `${location[0]},${location[1]}` : undefined, selectedDate.toISOString())
+                            pushBird(result.bird.id, uuid, location ? `${location[0]},${location[1]}` : undefined, selectedDate.toISOString())
                                 .then(async () => {
 
                                     const formData = new FormData();

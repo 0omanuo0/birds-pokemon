@@ -2,12 +2,12 @@ import Main from '@/components/home/main';
 import { UserProvider } from '@/components/userContext';
 import { Bird } from '@/lib/types';
 import { neon } from '@neondatabase/serverless';
-import { getServerSession } from 'next-auth';
+import { getSessionOrDevBypass } from '@/lib/session';
 import { redirect } from 'next/navigation';
 
 export default async function Home() {
     const sql = neon(process.env.DATABASE_URL || "");
-    const session = await getServerSession();
+    const session = await getSessionOrDevBypass();
 
     if (!session?.user?.email) {
         redirect('/api/auth/signin');

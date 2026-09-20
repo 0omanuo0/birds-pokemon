@@ -3,8 +3,15 @@
 import { s3 } from "@/lib/s3";
 import { PutObjectCommand, type PutObjectCommandInput } from "@aws-sdk/client-s3";
 import sharp from "sharp";
+import { getSessionOrDevBypass } from "@/lib/session";
 
 export async function POST(req: Request) {
+    // only signed-in users can write to the bucket
+    const session = await getSessionOrDevBypass();
+    if (!session?.user?.email) {
+        return new Response("Not signed in", { status: 401 });
+    }
+
     const formData = await req.formData();
     const image = formData.get('image') as File;
     const bird_id = formData.get('birdId') as string;

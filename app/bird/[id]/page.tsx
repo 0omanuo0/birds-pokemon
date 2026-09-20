@@ -1,26 +1,27 @@
 
 
 import BirdHome from "@/components/bird/home";
-import { fetchBirdById, fetchBirdData, sightingsByUserId } from "@/lib/data";
+import { fetchBirdById, sightingsByUserEmail } from "@/lib/data";
 import { Sighting } from "@/lib/types";
-import { neon } from "@neondatabase/serverless";
-import { getServerSession } from "next-auth";
+import { getSessionOrDevBypass } from "@/lib/session";
 import { redirect } from 'next/navigation';
 
 
 
 export default async function BirdPage({ params }: { params: Promise<{ id: string }> }) {
-    const session = await getServerSession();
+    const session = await getSessionOrDevBypass();
     const { id } = await params;
     if (!session || !session.user || !session.user.email) {
         // Redirect to sign-in page if session or user email is not available
         redirect('/api/auth/signin');
         return; // Prevent further execution
     }
-    const sql = neon(process.env.DATABASE_URL || "");
-    const [user] = await sql`SELECT * FROM users WHERE email = ${session.user.email};`;
-    const bird = await fetchBirdById(id);
-    const sightings = await sightingsByUserId(user.user_id, id);
+    // bird and sightings in parallel, and sightings joins the user by email: one round of DB calls
+    // instead of three sequential ones (user → bird → sightings)
+    const [bird, sightings] = await Promise.all([
+        fetchBirdById(id),
+        sightingsByUserEmail(session.user.email, id),
+    ]);
 
     return (
 

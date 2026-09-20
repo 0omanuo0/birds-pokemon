@@ -48,6 +48,21 @@ export async function fetchBirdById(birdId: string) {
 }
 
 
+// Same result as looking up the user by email and then calling sightingsByUserId, in one round trip.
+export async function sightingsByUserEmail(email: string, birdId: string) {
+    const sql = neon(process.env.DATABASE_URL || "");
+    const sightings = await sql`
+        SELECT s.*, EXTRACT(EPOCH FROM s.seen_at) AS seen_at_unix
+        FROM sightings s
+        JOIN users u ON u.user_id = s.user_id
+        WHERE u.email = ${email} AND s.bird_id = ${birdId}
+        ORDER BY s.seen_at DESC;`;
+    return sightings.map((sighting: any) => ({
+        ...sighting,
+        seen_at: Number(sighting.seen_at_unix),
+    }));
+}
+
 export async function sightingsByUserId(userId: string, birdId: string) {
     console.log("Fetching sightings for user:", userId, "and bird:", birdId);
     const sql = neon(process.env.DATABASE_URL || "");

@@ -3,13 +3,13 @@ import { homeSvg } from "@/components/imageSvg";
 import LateralLeft from "@/components/nav/lateralLeft";
 import Noise from "@/components/turbulenceNoise";
 import { neon } from "@neondatabase/serverless";
-import { getServerSession } from "next-auth";
+import { getSessionOrDevBypass } from "@/lib/session";
 import { redirect } from 'next/navigation';
 
 
 
 export default async function BirdPage({ params }: { params: Promise<{ id: string }> }) {
-    const session = await getServerSession();
+    const session = await getSessionOrDevBypass();
     const { id } = await params;
     if (!session || !session.user || !session.user.email) {
         // Redirect to sign-in page if session or user email is not available
