@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import FullscreenOnTap from "@/components/fullscreenOnTap";
 import DeviceShell from "@/components/device/deviceShell";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -22,6 +22,21 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
     title: "Birds-Pokedex",
     description: "by manu365",
+    // iPhone "Add to Home Screen": open without Safari's UI, content under a dark status bar
+    appleWebApp: {
+        capable: true,
+        title: "Birds Dex",
+        statusBarStyle: "black-translucent",
+    },
+    icons: {
+        apple: "/icons/apple-touch-icon.png",
+    },
+};
+
+export const viewport: Viewport = {
+    themeColor: "#171717",
+    // lets the app draw edge to edge on notched phones in fullscreen / installed mode
+    viewportFit: "cover",
 };
 
 export default async function RootLayout({
