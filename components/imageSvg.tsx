@@ -30,6 +30,13 @@ export const CameraSvg = <svg fill="none" xmlns="http://www.w3.org/2000/svg" vie
     <path d="M5 2H3v3H0v2h3v3h2V7h3V5H5V2zm12 1h-7v2h5v2h5v12H5v-7H3v9h19V5h-5V3zm-7 6h4v2h2v4h-2v2h-4v-2h4v-4h-4V9zm-2 2h2v4H8v-4z" fill="currentColor" />
 </svg>
 
+export const MicSvg = <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+    style={{ filter: "drop-shadow(2px 2px 0px rgba(0, 0, 0, 0.5))", }}
+    width="100%" height="auto"
+>
+    <path d="M10 2h4v1h-4zM9 3h6v9H9zM10 12h4v1h-4zM6 10h2v4H6zM16 10h2v4h-2zM6 14h12v2H6zM11 16h2v3h-2zM8 19h8v2H8z" fill="currentColor" />
+</svg>
+
 export const arrowBoxLeftSvg = <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
     style={{ filter: "drop-shadow(2px 2px 0px rgba(0, 0, 0, 0.5))", }}
     width="100%" height="auto"
@@ -87,4 +94,9 @@ export const trashSvg = <svg fill="none" xmlns="http://www.w3.org/2000/svg" view
     width="100%" height="auto"
 >
     <path d="M16 2v4h6v2h-2v14H4V8H2V6h6V2h8zm-2 2h-4v2h4V4zm0 4H6v12h12V8h-4zm-5 2h2v8H9v-8zm6 0h-2v8h2v-8z" fill="currentColor" />
+</svg>
+
+export const burgerSvg = <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+    width="100%" height="auto">
+    <path d="M20 18H4v-2h16v2Zm0-5H4v-2h16v2Zm0-5H4V6h16v2Z" fill="currentColor" />
 </svg>
