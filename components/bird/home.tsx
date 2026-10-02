@@ -1,140 +1,20 @@
 "use client";
 
 import LateralLeft from "@/components/nav/lateralLeft";
-import PokeballRotation from "@/components/pokeballRotation";
-import Noise from "@/components/turbulenceNoise";
-import { addSvg, homeSvg, ImageAddSvg, trashSvg } from "@/components/imageSvg";
+import LateralRight from "@/components/nav/lateralRight";
+import PokeballRotation, { PokeballRotationHandle } from "@/components/pokeballRotation";
+import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
+import { addSvg, homeSvg, PinSvg, trashSvg } from "@/components/imageSvg";
 import type { Bird, Sighting } from "@/lib/types";
-import { use, useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import HeadCard from "../home/headCard";
+import type { BirdInfo } from "@/app/api/bird_info/route";
+import { EMPTY_BIRD_INFO, loadBirdDescription, peekBirdDescription } from "@/lib/birdDescription";
+import { useEffect, useMemo, useRef, useState } from "react";
+import HeadCard, { formatSeenDate } from "../home/headCard";
+import { useRouter } from "next/navigation";
+import { deleteSighting } from "@/lib/actions";
+import DexNotice from "@/components/ui/dexNotice";
+import AddSightingsDialog from "./addSightingsDialog";
 import BirdDescription from "./description";
-
-
-function normalizeId(id: string): string {
-    return id
-        .toLowerCase()
-        .normalize("NFD") // para separar las tildes
-        .replace(/[\u0300-\u036f]/g, "") // remover tildes
-        .replace(/\s+/g, "_"); // espacios por guiones bajos si aplica
-}
-
-async function fetchWikipedia(scientific_name: string): Promise<any[]> {
-    const url = `https://es.wikipedia.org/w/rest.php/v1/page/${scientific_name}/html`;
-
-    const response = await fetch(url);
-    const html = await response.text();
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-
-    const sections = Array.from(doc.querySelectorAll('section[data-mw-section-id]'));
-    console.log(sections, "sections");
-    const result: any[] = [];
-
-    const targetSections = [
-        "distribucion_y_habitat",
-        "habitat",
-        "caracteristicas",
-        "estado_de_conservacion",
-        "canto",
-        "generalidades",
-    ];
-
-    console.log(sections, "sections");
-
-    console.log(sections.map(s => s.querySelector("h2[id]")?.id), "sections ids");
-
-
-    sections.forEach((section, index) => {
-        const h2 = section.querySelector("h2[id]");
-
-        const id = normalizeId(h2?.id || "");
-
-        if (!targetSections.includes(id) && index !== 0) return;
-
-
-        const title = h2?.textContent?.trim() || "Sin título";
-
-        let paragraphs = Array.from(section.querySelectorAll("p"))
-            .filter(p => !p.closest("sup") && !p.closest("table"))
-            .map(p => {
-                // Clone the <p> to avoid altering the original DOM
-                const clean: any = p.cloneNode(true);
-                // Remove <sup> elements (references)
-                clean.querySelectorAll("sup").forEach((el: any) => el.remove());
-                // Remove <table> elements
-                clean.querySelectorAll("table").forEach((el: any) => el.remove());
-                // Remove all tags except <i> and <b>
-                clean.querySelectorAll("*").forEach((el: any) => {
-                    // if is A but with rel="mw:WikiLink" replace with span with text color #007bff
-                    if (el.tagName === "A" && el.hasAttribute("rel") && el.getAttribute("rel") === "mw:WikiLink") {
-                        const span = document.createElement("I");
-                        span.style.color = "#830";
-                        span.textContent = el.textContent || "";
-                        el.replaceWith(span);
-                    }
-
-                    if (el.tagName !== "I" && el.tagName !== "B" && el.tagName !== "P") {
-                        // Replace the element with its text content
-                        const textNode = document.createTextNode(el.textContent || "");
-                        el.replaceWith(textNode);
-                    }
-                });
-                return clean.innerHTML.trim().replace(/\s+/g, " ");
-            })
-            .filter(text => text.length > 0);
-
-
-        if (normalizeId(title) === "canto") {
-            paragraphs = paragraphs.map((p: string) => {
-                return p.split(". ").slice(0, 1).join(". ") + ".";
-            });
-        }
-        else if (normalizeId(title) === "generalidades") {
-            paragraphs = [paragraphs[0].split(". ").slice(0, 2).join(". ")]; // only the first paragraph
-            if (!paragraphs[0].endsWith(".")) {
-                paragraphs[0] += ".";
-            }
-        }
-        else  { // paragraphs
-            paragraphs = paragraphs.map((p: string) => {
-                let r = p.split(". ").slice(0, 2).join(". ");
-                if (!r.endsWith(".")) 
-                    r += ".";
-                return r;
-            });
-        }
-
-
-        if (paragraphs.length > 0) {
-            result.push({
-                title,
-                body: paragraphs.join("<br><br>")
-            });
-        }
-
-    });
-
-    // split by . and select the first 3 paragraphs
-    // if (result.length > 0) {
-    //     result.forEach(section => {
-    //         if (normalizeId(section.title) === "generalidades")
-    //             return; // skip generalidades section
-
-    //         if (normalizeId(section.title) === "canto")
-    //             section.body = section.body.split(". ").slice(0, 1).join(". ");
-
-    //         section.body = section.body.split(". ").slice(0, 2).join(". ");
-    //     });
-
-    //     // if(sections.body)
-    // }
-
-    console.log(result, "result");
-
-    return result;
-}
 
 
 export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: Sighting[] }) {
@@ -142,11 +22,111 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
     const degrees_per_item = 18; // 360 / 20
     const [selectedImg, setSelectedImg] = useState(0);
 
-    // if is less than 10 full top it with {photo_url:""}
-    const sightingss: Sighting[] = [
+    // pad with empty "+" slots up to 10, and always keep at least one so you can add past 10 sightings;
+    // memoized so it isn't rebuilt on every wheel tick
+    const sightingss: Sighting[] = useMemo(() => [
         ...sightings,
-        ...Array.from({ length: 10 - sightings.length }, () => ({ photo_url: "" }))
-    ] as Sighting[];
+        ...Array.from({ length: Math.max(1, 10 - sightings.length) }, () => ({ photo_url: "" }))
+    ] as Sighting[], [sightings]);
+
+    const router = useRouter();
+    // files picked from a "+" slot; non-null opens the batch add dialog
+    const [addFiles, setAddFiles] = useState<File[] | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<Sighting | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [notice, setNotice] = useState<null | { tone: "success" | "error"; title: string; message: string }>(null);
+
+    // the file picker has to open from the tap itself (browsers block it from effects)
+    function pickPhotos() {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.multiple = true;
+        input.onchange = event => {
+            const files = Array.from((event.target as HTMLInputElement).files ?? []);
+            if (files.length) setAddFiles(files);
+        };
+        input.click();
+    }
+
+    async function removeSighting(sighting: Sighting) {
+        setDeleting(true);
+        const result = await deleteSighting(sighting.sighting_id);
+        setDeleting(false);
+        setConfirmDelete(null);
+        if (!result.success) {
+            setNotice({ tone: "error", title: "Delete failed", message: result.error });
+            return;
+        }
+        setSelectedImg(index => Math.max(0, Math.min(index, sightings.length - 2)));
+        router.refresh();
+    }
+
+    // Photos keep their EXIF date, so new sightings are often older than existing ones and land at the
+    // end of the strip, out of view, which looked like the upload had failed. After a save, move the
+    // selection (and the wheel) to the first new sighting once the refreshed list arrives.
+    const pokeballRef = useRef<PokeballRotationHandle | null>(null);
+    const focusImageIds = useRef<string[] | null>(null);
+    useEffect(() => {
+        const ids = focusImageIds.current;
+        if (!ids) return;
+        const index = sightings.findIndex(s => ids.some(id => s.photo_url?.includes(id)));
+        if (index === -1) return; // refreshed data not here yet
+        focusImageIds.current = null;
+        setSelectedImg(index);
+        pokeballRef.current?.rotateTo(index * degrees_per_item);
+    }, [sightings]);
+
+    function onSightingsSaved(imageIds: string[], partial: boolean) {
+        focusImageIds.current = imageIds;
+        router.refresh();
+        // partial save: the dialog stays open showing the failed photos
+        if (partial) return;
+        setAddFiles(null);
+        setNotice({ tone: "success", title: "Registered!", message: `${imageIds.length} sighting${imageIds.length === 1 ? "" : "s"} added to ${bird.name}.` });
+    }
+
+    const overlays = (
+        <>
+            {addFiles && (
+                <AddSightingsDialog
+                    birdId={bird.id}
+                    birdName={bird.name}
+                    initialFiles={addFiles}
+                    onClose={() => setAddFiles(null)}
+                    onSaved={onSightingsSaved}
+                />
+            )}
+            <DexNotice
+                open={!!confirmDelete}
+                tone="error"
+                title="Delete sighting?"
+                onClose={() => !deleting && setConfirmDelete(null)}
+                actions={[
+                    { label: "Cancel", onClick: () => !deleting && setConfirmDelete(null) },
+                    { label: deleting ? "Deleting…" : "Delete", primary: true, onClick: () => confirmDelete && !deleting && removeSighting(confirmDelete) },
+                ]}
+            >
+                {confirmDelete?.seen_at
+                    ? <>The sighting from <span className="font-pokemon text-yellow-400">{formatSeenDate(Number(confirmDelete.seen_at))}</span> and its photo will be deleted.</>
+                    : <>This sighting and its photo will be deleted.</>}
+                {sightings.length === 1 && (
+                    <span className="mt-2 block text-amber-400">
+                        It's your only sighting of {bird.name}: it will go back to unseen in your Pokédex.
+                    </span>
+                )}
+            </DexNotice>
+            <DexNotice
+                open={!!notice}
+                tone={notice?.tone}
+                title={notice?.title ?? ""}
+                onClose={() => setNotice(null)}
+                actions={[{ label: "OK", primary: true, onClick: () => setNotice(null) }]}
+            >
+                {notice?.message}
+            </DexNotice>
+        </>
+    );
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(0);
@@ -165,77 +145,67 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const [formattedDate, setFormattedDate] = useState<string | undefined>(undefined);
+    // null = still loading. Parsed on the server (/api/bird_info) and cached on the client; Home usually
+    // prefetched it while the bird was selected, in which case it's there on the first render.
+    const [description, setDescription] = useState<BirdInfo | null>(
+        () => peekBirdDescription(bird.scientificName) ?? null
+    );
 
     useEffect(() => {
-        if (sightingss[selectedImg]?.seen_at) {
-            const date = new Date(sightingss[selectedImg].seen_at);
-            const formatted = date.toLocaleString("en-GB", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-            }).replace(",", "");
-            setFormattedDate(formatted);
+        let cancelled = false;
+        const cached = peekBirdDescription(bird.scientificName);
+        if (cached) {
+            setDescription(cached);
+            return;
         }
-    }, [selectedImg, sightingss]);
-
-    const [description, setDescription] = useState<any | undefined>(undefined);
-
-    useEffect(() => {
-        // fetch("https://es.wikipedia.org/api/rest_v1/page/summary/" + bird.scientificName.replace(" ", "_"))
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         if (data.extract) {
-        //             setDescription(data.extract);
-        //         }
-        //     })
-        //     .catch(error => {
-        //         console.error("Error fetching bird description:", error);
-        //     });
-
-        fetchWikipedia(bird.scientificName.replace(" ", "_"))
-            .then(data => {
-                if (data.length > 0) {
-                    setDescription(data);
-                } else {
-                    setDescription("No description available.");
-                }
-            })
+        setDescription(null);
+        loadBirdDescription(bird.scientificName)
+            .then(sections => { if (!cancelled) setDescription(sections); })
             .catch(error => {
                 console.error("Error fetching bird description:", error);
-                setDescription("No description available.");
+                if (!cancelled) setDescription(EMPTY_BIRD_INFO);
             });
-    }, [bird.name]);
+        return () => { cancelled = true; };
+    }, [bird.scientificName]);
 
-    // triplicate the original array
+    // no sightings: keep the device on screen (it used to render nothing, so the whole shell vanished)
     if (!sightings || sightings.length === 0) {
-        return
+        return (
+            <>
+                <DeviceScreen>
+                    <div className="flex h-full flex-col items-center justify-center gap-3 text-center font-pokemon uppercase text-neutral-400">
+                        <span className="text-3xl text-neutral-500">???</span>
+                        No sightings yet
+                        <button
+                            type="button"
+                            onClick={pickPhotos}
+                            className="pixel-corners-4 h-9 cursor-pointer bg-yellow-400 px-4 text-sm text-neutral-900 hover:bg-yellow-300"
+                        >
+                            + Add sightings
+                        </button>
+                    </div>
+                    {overlays}
+                </DeviceScreen>
+                <DeviceControls>
+                    <LateralLeft target='/' label="Home">{homeSvg}</LateralLeft>
+                    <LateralRight target={`/bird/${bird.id}/map`} label="Map">{PinSvg}</LateralRight>
+                </DeviceControls>
+            </>
+        );
     }
 
+    // frame, bezel and screen height live in DeviceShell (root layout); this only fills the two cells
     return (
-        <main
-            className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
-        >
-            <LateralLeft target='/' setTop="65%">{homeSvg}</LateralLeft>
-
-            <section
-                className="relative md:h-[500px] md:min-h-auto w-full min-h-[550px]">
-                <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
-                    <Noise />
-                    <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
-                        <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                        <span className="text-neutral-300 text-sm font-medium font-pokemon">Birds Pokedex</span>
-                    </nav>
+        <>
+            <DeviceScreen>
                     <div
                         ref={containerRef}
-                        className="w-full h-full bg-neutral-700 pixel-corners-4 relative overflow-hidden noise-effect shining"
+                        className="relative h-full w-full"
                     >
                         <HeadCard selectedBird={{
                             ...bird as any,
-                            seen: formattedDate || undefined,
+                            // HeadCard formats seen_at (unix seconds) itself
+                            seen_at: sightingss[selectedImg].seen_at || undefined,
                             location: sightingss[selectedImg].location || undefined
                         }} known_bird={true} />
                         <ul className="flex w-fit select-none items-center h-[150px] mt-4 mb-4"
@@ -256,24 +226,44 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                                         className={"flex-shrink-0 -mx-2 overflow-hidden relative " + (selectedImg == index ? "pixel-corners-6-border--wrapper" : "")}
                                     >
                                         {
-                                            selectedImg == index &&
-                                            <button className="text-red-700/80 text-xl h-6 w-6 absolute top-2 right-2 z-50 bg-neutral-100 p-1 pixel-corners-4" >
+                                            // only real sightings can be deleted, not the empty "+" slots
+                                            selectedImg == index && index < sightings.length &&
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfirmDelete(sighting)}
+                                                aria-label="Delete sighting"
+                                                className="text-red-700/80 text-xl h-6 w-6 absolute top-2 right-2 z-50 bg-neutral-100 p-1 pixel-corners-4 cursor-pointer"
+                                            >
                                                 {trashSvg}
                                             </button>
                                         }
-                                        {sighting.photo_url !== "" ?
+                                        {index < sightings.length && !sighting.photo_url ? (
+                                            // a real sighting saved without a photo (older data has photo_url null):
+                                            // the old fallback pointed at an image that doesn't exist and showed as broken
+                                            <div className={"flex h-full w-full flex-col items-center justify-center gap-1 bg-neutral-700 font-pokemon text-xs uppercase text-neutral-400" + (selectedImg == index ? " pixel-corners-6-border" : "")}>
+                                                <span className="text-2xl text-neutral-500">?</span>
+                                                No photo
+                                            </div>
+                                        ) : sighting.photo_url ?
                                             <img
-                                                src={sighting.photo_url || "/img/bird_placeholder.png"}
+                                                src={sighting.photo_url}
                                                 alt={"" + sighting.sighting_id || "Unknown Bird"}
                                                 className={"aspect-square object-cover shadow-md" + (selectedImg == index ? " pixel-corners-6-border" : "")}
                                                 width={200}
                                                 height={200}
+                                                loading="lazy"
+                                                decoding="async"
                                                 style={{
-                                                    filter: selectedImg == index ? "none" : "blur(1px) brightness(0.6) opacity(0.8)",
+                                                    // no blur(): a blur filter on every unselected photo was expensive while the strip slides
+                                                    filter: selectedImg == index ? "none" : "brightness(0.55) opacity(0.8)",
                                                 }}
                                             />
                                             :
-                                            <div className="flex items-center justify-center h-full w-full"
+                                            <button
+                                                type="button"
+                                                onClick={pickPhotos}
+                                                aria-label="Add sightings"
+                                                className="flex items-center justify-center h-full w-full cursor-pointer hover:brightness-125"
                                                 style={{
                                                     // background color is descending from #555 to #333 depending of the index
                                                     backgroundColor: `rgba(85, 85, 85, ${1 - (index / sightingss.length)})`
@@ -282,7 +272,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                                                 <span className="text-neutral-300 h-8 w-8">
                                                     {addSvg}
                                                 </span>
-                                            </div>
+                                            </button>
                                         }
                                     </li>
                                 ))
@@ -290,19 +280,23 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                         </ul>
                         <BirdDescription description={description} />
                     </div>
-                </div>
-            </section>
-            <PokeballRotation
-                startScroll={0}
-                endScroll={(sightings.length - 1) * degrees_per_item}
-                onWheel={(rotation) => {
-                    const id = Math.round(rotation / degrees_per_item);
-                    if (id < sightings.length && id >= 0) {
-                        setSelectedImg(id);
-                    }
-                }}
-            />
-
-        </main >
+                    {overlays}
+            </DeviceScreen>
+            <DeviceControls>
+                <LateralLeft target='/' label="Home">{homeSvg}</LateralLeft>
+                <LateralRight target={`/bird/${bird.id}/map`} label="Map">{PinSvg}</LateralRight>
+                <PokeballRotation
+                    ref={pokeballRef}
+                    startScroll={0}
+                    endScroll={(sightings.length - 1) * degrees_per_item}
+                    onWheel={(rotation) => {
+                        const id = Math.round(rotation / degrees_per_item);
+                        if (id < sightings.length && id >= 0) {
+                            setSelectedImg(id);
+                        }
+                    }}
+                />
+            </DeviceControls>
+        </>
     );
 }

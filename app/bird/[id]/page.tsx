@@ -23,18 +23,6 @@ export default async function BirdPage({ params }: { params: Promise<{ id: strin
         sightingsByUserEmail(session.user.email, id),
     ]);
 
-    return (
-
-        <div className='h-[100dvh] md:py-4 2xl:py-8 w-full'
-            style={{
-                backgroundImage: "linear-gradient(45deg,#0000 10%, #222 60%)",
-            }}
-        >
-
-            <div className='md:w-[420px] h-full mx-auto md:rounded-3xl overflow-hidden md:p-2 md:bg-neutral-700 '>
-                <BirdHome bird={bird} sightings={sightings as Sighting[]} />
-            </div>
-        </div>
-
-    );
+    // frame, backdrop and bezel come from DeviceShell in the root layout
+    return <BirdHome bird={bird} sightings={sightings as Sighting[]} />;
 }

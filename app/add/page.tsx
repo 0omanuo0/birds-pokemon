@@ -1,6 +1,7 @@
 "use client";
 
 import ContextMenu from "@/components/contextMenu";
+import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
 import { ClockSvg, ImageAddSvg, PinSvg } from "@/components/imageSvg";
 import PokeballRotation from "@/components/pokeballRotation";
 import { useRouter } from "next/navigation";
@@ -13,34 +14,10 @@ export default function Add() {
     const contextMenuRef = useRef<any>(null);
     const router = useRouter();
 
+    // frame, backdrop and bezel come from DeviceShell in the root layout
     return (
-        <div className='h-[100dvh] md:py-4 2xl:py-12 w-full'
-            style={{
-                backgroundImage: "linear-gradient(45deg,#0000 10%, #222 60%)",
-            }}
-        >
-
-            <div className='md:w-[420px] h-full mx-auto md:rounded-3xl overflow-hidden md:p-2 md:bg-neutral-700'>
-                <main
-                    className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
-                >
-                    <section className="relative w-full h-fit md:h-[450px]">
-                        <div className="h-full w-full flex flex-col justify-center items-start bg-neutral-900 px-3 pb-3">
-                            <svg width="0" height="0" id="noise">
-                                <defs>
-                                    <filter id="noiseFilter">
-                                        <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" stitchTiles="stitch" />
-                                        <feBlend mode="soft-light" in="SourceGraphic" />
-                                    </filter>
-                                </defs>
-                            </svg>
-                            <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
-                                <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                                <span className="text-neutral-300 font-medium font-pokemon">Birds Pokedex</span>
-                            </nav>
-                            <div
-                                className="w-full h-[60dvh] md:h-full bg-neutral-700 rounded-sm relative overflow-hidden noise-effect shining"
-                            >
+        <>
+            <DeviceScreen>
                                 <div className="bg-white border-b-2 border-neutral-900 after:border-b-1 after:border-neutral-400 after:content-[''] after:block after:w-full">
                                     <div style={{ filter: "drop-shadow(0px 3px 1px #0006)" }}>
                                         <h2
@@ -84,9 +61,10 @@ export default function Add() {
                                         </div>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                        <div className="absolute bottom-0 w-full px-10 flex items-center justify-between gap-2">
+            </DeviceScreen>
+            <DeviceControls>
+                        {/* straddles the screen's bottom edge: anchored to the top of the controls row, lifted by half its height + 6px */}
+                        <div className="absolute top-0 z-10 w-full px-10 flex items-center justify-between gap-2">
                             <input
                                 style={{
                                     filter: "drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3))",
@@ -95,7 +73,7 @@ export default function Add() {
                                     backgroundImage: "linear-gradient(0deg, #0000 10%, #fff2 60%, #0000 100%)"
                                 }}
                                 placeholder="Añadir Pokémon"
-                                className=" px-4 shadow-lg bg-neutral-700 w-52 h-10 translate-y-[calc(50%-6px)] border-2 border-y-neutral-800/50 border-x-transparent"
+                                className=" px-4 shadow-lg bg-neutral-700 w-52 h-10 -translate-y-[calc(50%+6px)] border-2 border-y-neutral-800/50 border-x-transparent"
                             />
                             <button
                                 style={{
@@ -104,12 +82,11 @@ export default function Add() {
                                     maskImage: "polygon(20% 0%, 80% 0%, 100% 50%, 80% 100%, 20% 100%, 0% 50%)",
                                     backgroundImage: "linear-gradient(0deg, #0000 10%, #fff2 60%, #0000 100%)",
                                 }}
-                                className=" shadow-lg bg-neutral-700 w-18 h-10 translate-y-[calc(50%-6px)] border-2 border-y-yellow-400 border-x-transparent"
+                                className=" shadow-lg bg-neutral-700 w-18 h-10 -translate-y-[calc(50%+6px)] border-2 border-y-yellow-400 border-x-transparent"
                             >
                                 <span style={{ left: 23, top: 1, textShadow: "2px 2px 0px #0006", }} className="font-pokemon absolute">+</span>
                             </button>
                         </div>
-                    </section>
                     <PokeballRotation
                         onWheel={() => { }}
                         startScroll={0}
@@ -121,9 +98,7 @@ export default function Add() {
 
                     />
                     <ContextMenu ref={contextMenuRef} />
-
-                </main>
-            </div>
-        </div>
+            </DeviceControls>
+        </>
     )
 }
