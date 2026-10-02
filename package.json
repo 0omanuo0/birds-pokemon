@@ -27,7 +27,7 @@
     "react-dom": "^19.0.0",
     "react-flatpickr": "^4.0.10",
     "react-leaflet": "^5.0.0",
-    "sharp": "^0.34.2"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
