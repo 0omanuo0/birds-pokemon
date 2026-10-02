@@ -112,7 +112,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                     : <>This sighting and its photo will be deleted.</>}
                 {sightings.length === 1 && (
                     <span className="mt-2 block text-amber-400">
-                        It's your only sighting of {bird.name}: it will go back to unseen in your Pokédex.
+                        It&apos;s your only sighting of {bird.name}: it will go back to unseen in your Pokédex.
                     </span>
                 )}
             </DexNotice>

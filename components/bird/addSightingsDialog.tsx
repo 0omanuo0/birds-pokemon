@@ -247,12 +247,12 @@ export default function AddSightingsDialog({ birdId, birdName, initialFiles, onC
                                 {/* identifier check */}
                                 {item.check.status === "checking" && <span className="animate-pulse font-pokemon uppercase text-neutral-400">Checking…</span>}
                                 {item.check.status === "match" && <span className="font-pokemon uppercase text-green-400">✓ Matches · {(item.check.confidence * 100).toFixed(0)}%</span>}
-                                {item.check.status === "error" && <span className="font-pokemon uppercase text-neutral-400">· Couldn't verify</span>}
+                                {item.check.status === "error" && <span className="font-pokemon uppercase text-neutral-400">· Couldn&apos;t verify</span>}
                                 {item.check.status === "mismatch" && (
                                     <div className="flex flex-col gap-1">
                                         <span className="text-amber-400">
                                             <span className="font-pokemon">⚠ </span>
-                                            The AI thinks it's <b>{item.check.guess}</b> ({(item.check.confidence * 100).toFixed(0)}%)
+                                            The AI thinks it&apos;s <b>{item.check.guess}</b> ({(item.check.confidence * 100).toFixed(0)}%)
                                             {item.check.thisBird !== null ? `, ${birdName}: ${(item.check.thisBird * 100).toFixed(0)}%` : ""}
                                         </span>
                                         {item.check.keep ? (
@@ -264,7 +264,7 @@ export default function AddSightingsDialog({ birdId, birdName, initialFiles, onC
                                                     onClick={() => update(item.key, i => ({ check: { ...(i.check as Extract<Check, { status: "mismatch" }>), keep: true } }))}
                                                     className="pixel-corners-4 h-6 cursor-pointer bg-yellow-400 px-2 font-pokemon uppercase text-neutral-900"
                                                 >
-                                                    I'm sure
+                                                    I&apos;m sure
                                                 </button>
                                                 <button
                                                     type="button"

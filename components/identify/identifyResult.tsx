@@ -405,7 +405,7 @@ export default function IdentifyResult({ candidates, photoUrl, image, userId, on
                                 <span className="font-pokemon">{check === "ok" ? "✓ " : check === "unlikely" ? "⚠ " : ""}</span>
                                 {check === "ok" && region && <>{REGION_NAMES[region]}</>}
                                 {check === "unlikely" && region && <>Not recorded in {REGION_NAMES[region]}: double-check the species</>}
-                                {check === "outside" && <>Your location is outside the list's area</>}
+                                {check === "outside" && <>Your location is outside the list&apos;s area</>}
                                 {check === "no_location" && (locating ? <>Finding your location…</> : <>Add a location to check the region</>)}
                             </span>
                             <span className="shrink-0 font-pokemon uppercase text-white pixel-corners-1 px-3 py-[1px] bg-neutral-500">{location ? "Edit" : "Add"}</span>
@@ -435,7 +435,7 @@ export default function IdentifyResult({ candidates, photoUrl, image, userId, on
                                     <span className="mr-1 inline-block w-3 text-yellow-400">{alternativesOpen ? "▾" : "▸"}</span>
                                     Could it be…?
                                 </span>
-                                {uncertain && <span className="pl-4 text-xs text-neutral-400">The AI isn't sure, compare the options</span>}
+                                {uncertain && <span className="pl-4 text-xs text-neutral-400">The AI isn&apos;t sure, compare the options</span>}
                             </span>
                             <span className="font-pokemon text-xs text-neutral-500">{alternatives.length}</span>
                         </button>
