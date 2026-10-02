@@ -42,5 +42,9 @@ next-env.d.ts
 
 certificates
 
+# onnxruntime-web wasm binaries, copied out of node_modules by the postinstall script
+# (14MB, and they must always match the installed package version)
+/public/onnx/
+
 # design reference mockups, not part of the app
 /public/mockups/

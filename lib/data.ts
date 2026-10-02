@@ -70,7 +70,13 @@ export async function birdHeatmap(birdId: number): Promise<BirdHeatmap> {
 
 export async function fetchBirdData(birdName: string) {
     const sql = neon(process.env.DATABASE_URL || "");
-    const birds_data_raw = await sql`SELECT * FROM birds WHERE common_name = ${birdName} OR scientific_name = ${birdName} LIMIT 1;`;
+    // name_en is matched too so that sound detections resolve: BirdNET follows a newer taxonomy than
+    // our list, so it reports Ichthyaetus audouinii where we store Larus audouinii. The English
+    // common name is the one thing both sides agree on for those ~20 renamed species.
+    const birds_data_raw = await sql`
+        SELECT * FROM birds
+        WHERE common_name = ${birdName} OR scientific_name = ${birdName} OR name_en = ${birdName}
+        LIMIT 1;`;
     if (birds_data_raw.length === 0) {
         return null; // No bird found with the given name
     }
