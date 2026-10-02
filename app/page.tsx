@@ -58,17 +58,10 @@ export default async function Home() {
         rare: /\bR[12]\b/.test(bird.seo_notes ?? ''),
     }));
 
+    // frame, backdrop and bezel come from DeviceShell in the root layout
     return (
-        <div className='h-[100dvh] md:py-4 2xl:py-8 w-full 2xl:flex 2xl:items-center'
-            style={{
-                backgroundImage: 'linear-gradient(45deg,#000 10%, #333 60%)',
-            }}
-        >
-            <div className='text-white md:w-[420px] md:h-[740px] 2xl:w-[500px] 2xl:h-[885px] h-full mx-auto md:rounded-3xl overflow-hidden md:p-2 md:bg-neutral-700 '>
-                <UserProvider userD={user}>
-                    <Main birds_default={birds_data} birds_seen={birds_known} />
-                </UserProvider>
-            </div>
-        </div>
+        <UserProvider userD={user}>
+            <Main birds_default={birds_data} birds_seen={birds_known} />
+        </UserProvider>
     );
 }
