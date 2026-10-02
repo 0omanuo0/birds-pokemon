@@ -1,243 +1,197 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { getGetUserMedia } from './getUserMedia';
+import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import CameraComponent from '@/components/identify/camera';
-import CameraSelector from '@/components/identify/cameraSelector';
 import PokeballRotation from '@/components/pokeballRotation';
-import ContextMenu from '@/components/contextMenu';
-import { arrowBoxLeftSvg, CameraSvg, homeSvg, ImageAddSvg, userSvg } from '@/components/imageSvg';
+import { homeSvg, ImageAddSvg, MicSvg, userSvg } from '@/components/imageSvg';
 import LateralRight from '@/components/nav/lateralRight';
 import LateralLeft from '@/components/nav/lateralLeft';
-import Dialog from '@/components/identify/dialog';
-import Noise from '@/components/turbulenceNoise';
+import IdentifyResult from '@/components/identify/identifyResult';
+import DexNotice from '@/components/ui/dexNotice';
+import DeviceScreen, { DeviceControls } from '@/components/device/deviceScreen';
+import { useUser } from '@/components/userContext';
+import { resizeToJpeg } from '@/lib/resizeImage';
+import type { IdentifyCandidate, IdentifyError, IdentifyResponse } from '@/app/api/identify/route';
 
-// A small helper to grab the best getUserMedia implementation
+type Phase = 'idle' | 'analyzing' | 'result' | 'error';
+type ErrorKind = IdentifyError['error'] | 'network' | 'camera';
 
+const ERROR_TEXT: Record<ErrorKind, { title: string; message: string }> = {
+    backend: { title: 'Offline', message: "Couldn't reach the identifier. Try again in a few seconds." },
+    no_bird: { title: 'No results', message: 'No bird was detected in the photo. Try getting closer or framing it better.' },
+    no_image: { title: 'Invalid photo', message: "The photo couldn't be read. Try another image." },
+    network: { title: 'Network error', message: "The photo couldn't be sent. Check your connection." },
+    camera: { title: 'Camera', message: "The camera isn't ready yet." },
+};
 
 export default function IdentifyPage() {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
-
-    const [showDialog, setShowDialog] = useState(false);
-    const [result, setResult] = useState<any | null>(null);
-    const [image, setImage] = useState<Blob | null>(null);
+    const { user } = useUser();
+    const router = useRouter();
 
     const [scale, setScale] = useState(1);
+    const [phase, setPhase] = useState<Phase>('idle');
+    const [capture, setCapture] = useState<{ blob: Blob; url: string } | null>(null);
+    const [candidates, setCandidates] = useState<IdentifyCandidate[]>([]);
+    const [error, setError] = useState<ErrorKind>('backend');
 
+    // Release the camera while the result or an error covers it (saves CPU, battery and heat).
+    // It restarts when back to idle; permission is already granted, so no prompt, just a short restart.
+    const cameraActive = phase !== 'result' && phase !== 'error';
+
+    // free the photo's object URL when it's replaced or the page unmounts
+    useEffect(() => () => { if (capture) URL.revokeObjectURL(capture.url); }, [capture]);
+
+    async function identify(blob: Blob) {
+        if (phase === 'analyzing') return;
+        setCapture({ blob, url: URL.createObjectURL(blob) });
+        setPhase('analyzing');
+
+        try {
+            // the model only needs a small image; the full-size blob is kept for saving
+            const small = await resizeToJpeg(blob);
+            const formData = new FormData();
+            formData.append('image', small, 'photo.jpg');
+
+            const response = await fetch('/api/identify', { method: 'POST', body: formData });
+            const data: IdentifyResponse | IdentifyError | null = await response.json().catch(() => null);
+
+            if (!response.ok || !data || 'error' in data || data.candidates.length === 0) {
+                setError(data && 'error' in data ? data.error : 'backend');
+                setPhase('error');
+                return;
+            }
+            setCandidates(data.candidates);
+            setPhase('result');
+        } catch (err) {
+            console.error('Error during prediction:', err);
+            setError('network');
+            setPhase('error');
+        }
+    }
+
+    function reset() {
+        setPhase('idle');
+        setCandidates([]);
+        setCapture(null);
+    }
 
     function uploadPhoto() {
-        // upload photo, first show dialog to select file and then upload
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'image/jpg,image/jpeg';
-        input.onchange = async (event) => {
+        input.accept = 'image/*';
+        input.onchange = event => {
             const file = (event.target as HTMLInputElement).files?.[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('image', file);
-            setImage(file); // Store the image blob for dialog display
-            console.log('Sending image for prediction:', file.size);
-
-            try {
-                const response = await fetch('/api/identify', {
-                    method: 'POST',
-                    body: formData,
-                });
-                if (!response.ok) {
-                    alert('Failed to fetch prediction: ' + response.statusText);
-                    console.error('Failed to fetch prediction:', response.statusText);
-                    return;
-                }
-                const data = await response.json();
-                console.log('Prediction result:', data);
-                setResult(data);
-                setShowDialog(true);
-                const birdCanvas = document.getElementById('birdCanvas') as HTMLCanvasElement;
-                const birdCtx = birdCanvas.getContext('2d');
-                if (birdCtx) {
-                    const image = new Image();
-                    image.src = URL.createObjectURL(file);
-                    image.onload = () => {
-                        birdCtx.clearRect(0, 0, birdCanvas.width, birdCanvas.height);
-
-                        // Calculate aspect ratios
-                        const canvasAspect = birdCanvas.width / birdCanvas.height;
-                        const imageAspect = image.width / image.height;
-
-                        let sx = 0, sy = 0, sWidth = image.width, sHeight = image.height;
-
-                        if (imageAspect > canvasAspect) {
-                            // Image is wider: crop sides
-                            sWidth = image.height * canvasAspect;
-                            sx = (image.width - sWidth) / 2;
-                        } else {
-                            // Image is taller: crop top/bottom
-                            sHeight = image.width / canvasAspect;
-                            sy = (image.height - sHeight) / 2;
-                        }
-
-                        birdCtx.drawImage(
-                            image,
-                            sx, sy, sWidth, sHeight,
-                            0, 0, birdCanvas.width, birdCanvas.height
-                        );
-                    };
-                }
-            } catch (error) {
-                console.error('Error during prediction:', error);
-            }
-        }
+            if (file) identify(file);
+        };
         input.click();
     }
 
     function predict() {
-        if (!videoRef.current || !streamRef.current) {
-            console.error('Video element or stream not available');
+        const video = videoRef.current;
+        if (!video || !streamRef.current || !video.videoWidth) {
+            setError('camera');
+            setPhase('error');
             return;
         }
         const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error('Failed to get canvas context');
-            return;
-        }
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(async (blob) => {
-            if (!blob) {
-                console.error('Failed to create blob from canvas');
-                return;
-            }
-            const formData = new FormData();
-            formData.append('image', blob, 'frame.jpg');
-            setImage(blob); // Store the image blob for dialog display
-            console.log('Sending image for prediction:', blob.size);
-            try {
-                const response = await fetch('/api/identify', {
-                    method: 'POST',
-                    body: formData,
-                });
-                if (!response.ok) {
-                    console.error('Failed to fetch prediction:', response.statusText);
-                    return;
-                }
-                const data = await response.json();
-                console.log('Prediction result:', data);
-                setResult(data);
-                setShowDialog(true);
-
-                // draw the predicted bird image on the canvas
-                const birdCanvas = document.getElementById('birdCanvas') as HTMLCanvasElement;
-                const birdCtx = birdCanvas.getContext('2d');
-                if (birdCtx && videoRef.current) {
-                    birdCtx.clearRect(0, 0, birdCanvas.width, birdCanvas.height);
-                    const image = new Image();
-                    image.src = URL.createObjectURL(blob);
-                    image.onload = () => {
-                        // Calculate aspect ratios
-                        const canvasAspect = birdCanvas.width / birdCanvas.height;
-                        const imageAspect = image.width / image.height;
-
-                        let sx = 0, sy = 0, sWidth = image.width, sHeight = image.height;
-                        if (imageAspect > canvasAspect) {
-                            // Image is wider: crop sides
-                            sWidth = image.height * canvasAspect;
-                            sx = (image.width - sWidth) / 2;
-                        } else {
-                            // Image is taller: crop top/bottom
-                            sHeight = image.width / canvasAspect;
-                            sy = (image.height - sHeight) / 2;
-                        }
-                        birdCtx.drawImage(
-                            image,
-                            sx, sy, sWidth, sHeight,
-                            0, 0, birdCanvas.width, birdCanvas.height
-                        );
-                    };
-                }
-            } catch (error) {
-                console.error('Error during prediction:', error);
-                setShowDialog(false);
-            }
-        }, 'image/jpeg');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => { if (blob) identify(blob); }, 'image/jpeg', 0.92);
     }
 
-
-
-    const contextMenuRef = useRef<any>(null);
-
-
-
+    // frame, backdrop and bezel come from DeviceShell in the root layout
     return (
-        <div className='h-[100dvh] md:py-4 2xl:py-8 w-full'
-            style={{
-                backgroundImage: "linear-gradient(45deg,#0000 10%, #222 60%)",
-            }}
-        >
+        <>
+            <DeviceScreen>
+                <div className="relative flex h-full w-full flex-row">
+                    <CameraComponent videoRef={videoRef} streamRef={streamRef} scale={scale} active={cameraActive} />
+                </div>
 
-            <div className='md:w-[420px] h-full mx-auto md:rounded-3xl overflow-hidden md:p-2 md:bg-neutral-700 '>
-                <main
-                    className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
-                >
+                {phase === 'idle' && (
+                    <div className="absolute bottom-0 right-0 m-4 flex h-16 w-fit items-end justify-center gap-2">
+                        {/* the other half of identify: same flow, ears instead of eyes */}
+                        <button
+                            onClick={() => router.push('/identify-sound')}
+                            aria-label="Identify by sound"
+                            className="z-[30] h-10 w-10 cursor-pointer border-2 border-neutral-700/70 bg-red-400 px-1 py-1"
+                        >
+                            {MicSvg}
+                        </button>
+                        <button
+                            onClick={uploadPhoto}
+                            aria-label="Upload photo"
+                            className="z-[30] h-10 w-10 cursor-pointer border-2 border-neutral-700/70 bg-red-400 px-1 py-1"
+                        >
+                            {ImageAddSvg}
+                        </button>
+                    </div>
+                )}
 
-                    <LateralLeft target='/user'>{userSvg}</LateralLeft>
-                    <LateralRight target='/'>{homeSvg}</LateralRight>
-                    <section className="relative w-full h-fit md:h-[450px]">
-                        <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
-                            <Noise />
-                            <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
-                                <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                                <span className="text-neutral-300 text-sm font-medium font-pokemon">Birds Pokedex</span>
-                            </nav>
-                            <div
-                                className="w-full md:h-full h-[50dvh] bg-neutral-700 rounded-sm relative overflow-hidden noise-effect shining"
-                            >
-                                <div className="flex flex-row w-full h-full relative">
-                                    <CameraComponent
-                                        videoRef={videoRef}
-                                        streamRef={streamRef}
-                                        scale={scale}
-                                    />
-                                    <Dialog showDialog={showDialog} image={image} setShowDialog={setShowDialog} result={result} />
-                                </div>
-
-                                <div className={"absolute bottom-0 right-0 w-fit h-16 m-4  flex items-end justify-center" + (showDialog ? " hidden" : "")}>
-                                    <button
-                                        onClick={() => {
-                                            uploadPhoto();
-                                        }}
-                                        className="w-10 h-10 px-1 py-1 z-[99] bg-red-400 border-2 border-neutral-700/70">{ImageAddSvg}</button>
-                                </div>
-
-                                <div
-                                    className="absolute inset-0 pointer-events-none rounded-sm"
-                                    style={{ boxShadow: "inset 0 0 6px 1px #171717" }}
-                                />
-                            </div>
+                {/* analyzing: show the captured photo with a scan line while the model works */}
+                {phase === 'analyzing' && capture && (
+                    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-neutral-900/90 animate-[device-screen-in_150ms_ease-out]">
+                        <div className="pixel-corners-6 relative aspect-square w-3/5 max-w-[240px] overflow-hidden bg-neutral-700 p-1">
+                            <img src={capture.url} alt="" className="pixel-corners-4 h-full w-full object-cover" />
+                            <span className="pointer-events-none absolute inset-x-0 top-0 h-1/3 animate-[dex-scan_1.4s_ease-in-out_infinite_alternate] border-b-2 border-yellow-400 bg-gradient-to-b from-transparent to-yellow-400/25" aria-hidden />
                         </div>
-                    </section>
-                    <PokeballRotation
-                        onWheel={(e) => {
-                            if (e < 0) return;
-                            setScale(e / 32 + 1);
-                        }}
-                        startScroll={0}
-                        endScroll={32 * 4}
-                        onPress={() => {
-                            predict();
-                        }}
-                        onLongPress={() => { }}
+                        <p className="font-pokemon text-sm uppercase tracking-widest text-neutral-200">
+                            Analyzing<span className="animate-pulse">…</span>
+                        </p>
+                    </div>
+                )}
 
+                {phase === 'result' && capture && (
+                    <IdentifyResult
+                        candidates={candidates}
+                        photoUrl={capture.url}
+                        image={capture.blob}
+                        userId={user?.user_id}
+                        onClose={reset}
                     />
-                    <ContextMenu ref={contextMenuRef} />
+                )}
 
-                </main>
-            </div>
-        </div>
+                <DexNotice
+                    open={phase === 'error'}
+                    tone="error"
+                    title={ERROR_TEXT[error].title}
+                    onClose={reset}
+                    actions={[
+                        { label: 'Close', onClick: reset },
+                        ...(capture && error !== 'camera'
+                            ? [{ label: 'Retry', primary: true, onClick: () => { const blob = capture.blob; setPhase('idle'); identify(blob); } }]
+                            : []),
+                    ]}
+                >
+                    {ERROR_TEXT[error].message}
+                </DexNotice>
+            </DeviceScreen>
+            
+            <DeviceControls>
+                <LateralLeft target='/user' label="User">{userSvg}</LateralLeft>
+                <LateralRight target='/' label="Home">{homeSvg}</LateralRight>
+                {/* same legend as Home, labelled for this page's pokeball: press identifies, spinning zooms */}
+                <div className="font-pokemon-ns text-lg text-neutral-400 flex gap-6 my-2 shrink-0">
+                    <span><span>◉</span>Press · <b className="text-amber-400">SCAN</b></span>
+                    <span><span>↻</span>Spin · <b className="text-amber-400">ZOOM</b></span>
+                </div>
+                <PokeballRotation
+                    onWheel={(e) => {
+                        if (e < 0) return;
+                        setScale(e / 32 + 1);
+                    }}
+                    startScroll={0}
+                    endScroll={32 * 4}
+                    onPress={() => {
+                        if (phase === 'idle') predict();
+                    }}
+                    onLongPress={() => { }}
+                />
+            </DeviceControls>
+            
+        </>
     );
 }
-
-

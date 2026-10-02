@@ -8,9 +8,12 @@ import { imageSvg, userSvg } from '../imageSvg';
 export default function CameraSelector({
     videoRef,
     streamRef,
+    active = true,
 }: {
     videoRef: React.RefObject<HTMLVideoElement | null>;
     streamRef: React.RefObject<MediaStream | null>;
+    // false releases the camera (tracks stopped, sensor off); true starts it again
+    active?: boolean;
 }) {
     const [selectedId, setSelectedId] = useState<string>('');
     const [options, setOptions] = useState<
@@ -90,8 +93,19 @@ export default function CameraSelector({
         };
     }, []);
 
-    // whenever selectedId changes, (re)start the stream
+    // whenever selectedId changes, (re)start the stream; when inactive, release the camera entirely.
+    // Stopping the tracks is what actually turns the sensor off — track.enabled = false or pausing the
+    // <video> keeps the camera pipeline running (and the phone heating) on Android.
     useEffect(() => {
+        if (!active) {
+            streamRef.current?.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+            if (videoRef.current) {
+                videoRef.current.srcObject = null;
+            }
+            return;
+        }
+
         let isActive = true;
 
         async function startCamera() {
@@ -154,7 +168,7 @@ export default function CameraSelector({
             isActive = false;
             document.removeEventListener('visibilitychange', handleVisibility);
         };
-    }, [selectedId, options]);
+    }, [selectedId, options, active]);
 
 
     return (

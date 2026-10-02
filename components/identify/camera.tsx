@@ -11,11 +11,13 @@ export default function CameraComponent(
     {
         videoRef,
         streamRef,
-        scale
+        scale,
+        active = true,
     }: {
         videoRef: React.RefObject<HTMLVideoElement | null>;
         streamRef: React.RefObject<MediaStream | null>;
         scale: number;
+        active?: boolean;
     }) {
 
 
@@ -38,6 +40,7 @@ export default function CameraComponent(
                 <CameraSelector
                     videoRef={videoRef}
                     streamRef={streamRef}
+                    active={active}
                 />
             </div>
         </div >
