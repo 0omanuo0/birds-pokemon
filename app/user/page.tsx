@@ -45,7 +45,7 @@ export default async function BirdPage({ params }: { params: Promise<{ id: strin
                 <main
                     className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
                 >
-                    <LateralLeft target='/' setTop="65%">{homeSvg}</LateralLeft>
+                    <LateralLeft target='/' label="Home">{homeSvg}</LateralLeft>
                     <section
                         className="relative md:h-[450px] md:min-h-auto w-full min-h-[550px]">
                         <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">

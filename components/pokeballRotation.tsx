@@ -10,9 +10,16 @@ export type PokeballRotationHandle = {
 
 const PokeballRotation = forwardRef<PokeballRotationHandle, {
     onWheel?: (rotation: number) => void; startScroll: number; endScroll: number; onPress?: () => void; onLongPress?: () => void;
+    // degrees per item; when set, the wheel settles onto the nearest item instead of stopping anywhere
+    snapStep?: number;
+    // when set, a single press waits DOUBLE_TAP_MS to make sure it isn't the first half of a double tap
+    onDoubleTap?: () => void;
 }>(function PokeballRotation(
-    { onWheel, startScroll, endScroll, onPress, onLongPress }, ref
+    { onWheel, startScroll, endScroll, onPress, onLongPress, snapStep, onDoubleTap }, ref
 ) {
+    const DOUBLE_TAP_MS = 250;
+    const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    useEffect(() => () => { if (pressTimerRef.current) clearTimeout(pressTimerRef.current); }, []);
     const [pokRotation, setPokRotation] = useState(startScroll);
     const [isRotating, setIsRotating] = useState(false);
     const [startCords, setStartCoords] = useState({ x: 0, y: 0 });
@@ -20,6 +27,10 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     // so it belongs in a ref rather than state.
     const velocityRef = useRef(0);
     const MAX_VELOCITY = 20;
+    // below this speed (degrees per 10ms) the wheel stops coasting and pulls onto the nearest item
+    const SNAP_SPEED = 1.5;
+    const SNAP_STIFFNESS = 0.08;
+    const SNAP_DAMPING = 0.7;
     // Mirrors pokRotation so the physics loop always reads the latest value
     // synchronously (no stale closures), without needing React's functional
     // setState form.
@@ -107,6 +118,9 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     function applyInertia() {
         stopInertiaLoop();
         lastFrameTimeRef.current = performance.now();
+        // once the pull toward an item starts it stays on, so the spring's own
+        // velocity can't flip the loop back into free coasting mid-settle
+        let snapping = false;
 
         function tick(now: number) {
             // steps: how many "10ms units" elapsed, so the physics feel the same
@@ -117,6 +131,24 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
 
             const prevVelocity = velocityRef.current;
             const prevRotation = pokRotationRef.current;
+
+            if (snapStep && (snapping || Math.abs(prevVelocity) < SNAP_SPEED)) {
+                snapping = true;
+                const target = Math.min(Math.max(Math.round(prevRotation / snapStep) * snapStep, startScroll), endScroll);
+                const diff = target - prevRotation;
+                if (Math.abs(diff) < 0.05 && Math.abs(prevVelocity) < 0.05) {
+                    setRotation(target);
+                    velocityRef.current = 0;
+                    inertiaFrameRef.current = null;
+                    return;
+                }
+                // damped spring: slightly underdamped, so it lands with a small overshoot
+                const v = (prevVelocity + diff * SNAP_STIFFNESS * steps) * Math.pow(SNAP_DAMPING, steps);
+                velocityRef.current = v;
+                setRotation(prevRotation + v * steps);
+                inertiaFrameRef.current = requestAnimationFrame(tick);
+                return;
+            }
 
             if (Math.abs(prevVelocity) < 0.001) {
                 let settled = prevRotation;
@@ -224,22 +256,39 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                     }
                 }}
                 style={{
-                    boxShadow: "inset 0px 0px 8px 13px #FFF",
+                    boxShadow: "0px 0px 30px 0px rgba(0, 0, 0, 0.6)",
                     bottom: "0",
                     left: "50%",
                     transformOrigin: "center",
-                    transform: `translateX(-50%) translateY(50%) rotate(${clampedRotation.toFixed(2)}deg)`,
+                    transform: `translateX(-50%) translateY(calc(50% + 3px)) rotate(${clampedRotation.toFixed(2)}deg)`,
+                    // One background instead of a clipped red child: two separately
+                    // anti-aliased round edges let the grey bleed through as light pixels.
+                    // color-mix(srgb, 70%) is exactly the old red-700/70 over neutral-300.
+                    backgroundImage: `linear-gradient(to bottom,
+                        color-mix(in srgb, var(--color-red-700) 70%, var(--color-neutral-300)) 0 calc(50% - 10px),
+                        #2e2728 calc(50% - 10px) 50%,
+                        var(--color-neutral-300) 50%)`,
                 }}
-                className="shadow-lg bg-neutral-300 border-neutral-800 border-8 w-full aspect-square h-auto rounded-full absolute overflow-hidden"
-            >
-                <div className="bg-red-700/70 w-full h-1/2 border-b-[10px] border-neutral-800"></div>
-            </div>
+                className="shadow-lg bg-clip-padding border-[#2e2728] border-8 w-full aspect-square h-auto rounded-full absolute overflow-hidden"
+            />
             <button
                 onClick={(e) => {
                     e.preventDefault();
-                    if (onPress) {
-                        onPress();
+                    if (!onDoubleTap) {
+                        onPress?.();
+                        return;
                     }
+                    if (pressTimerRef.current) {
+                        // second tap inside the window: it's a double tap, cancel the pending single press
+                        clearTimeout(pressTimerRef.current);
+                        pressTimerRef.current = null;
+                        onDoubleTap();
+                        return;
+                    }
+                    pressTimerRef.current = setTimeout(() => {
+                        pressTimerRef.current = null;
+                        onPress?.();
+                    }, DOUBLE_TAP_MS);
                 }}
                 onContextMenu={(e) => {
                     e.preventDefault();
@@ -248,9 +297,9 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                     }
                 }}
                 ref={pokeballCenterRef}
-                className="absolute left-1/2 transform -translate-x-1/2 -bottom-10 rounded-full bg-white border-8 border-neutral-800/95 w-20 h-20 flex items-center justify-center hover:cursor-pointer hover:bg-yellow-100 active:bg-yellow-100 shadow-inset"
+                className="absolute shadow-[0_0_30px_0_rgba(0,0,0,0.6)] left-1/2 transform -translate-x-1/2 -bottom-[43px] rounded-full bg-white bg-clip-padding border-8 border-[#2e2728] w-20 h-20 flex items-center justify-center touch-manipulation hover:cursor-pointer hover:bg-yellow-100 active:bg-yellow-100"
             >
-                <div className="bg-neutral-800/95 w-10 h-10 rounded-full"></div>
+                <div className="bg-[#2e2728] w-10 h-10 rounded-full"></div>
             </button>
         </div>
     );

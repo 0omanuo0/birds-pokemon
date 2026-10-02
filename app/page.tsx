@@ -54,6 +54,8 @@ export default async function Home() {
         na: bird.na,
         ca: bird.ca,
         pb: bird.pb,
+        nameEn: bird.name_en,
+        rare: /\bR[12]\b/.test(bird.seo_notes ?? ''),
     }));
 
     return (

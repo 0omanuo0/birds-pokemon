@@ -10,7 +10,7 @@ export default function BirdCard(
         : { selectedBird: any, selectedBirdSeenD: any, known_bird: boolean }
 ) {
     const router = useRouter();
-
+    
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     useEffect(() => {
         if (!known_bird || !selectedBird) return;
@@ -60,8 +60,8 @@ export default function BirdCard(
                     width={200}
                     height={200}
                 ></canvas>
-                {!known_bird && (
-                    <div className="w-[200px] h-[200px] aspect-square border border-neutral-500 bg-white flex items-center justify-center">
+                {(!known_bird || !selectedBirdSeenD?.photo_url) && (
+                    <div className="w-[200px] h-[200px] aspect-square border details-bg border-neutral-500 bg-white flex items-center justify-center">
                         <span className="font-pokemon text-black text-6xl select-none">?</span>
                     </div>
                 )}
@@ -71,25 +71,28 @@ export default function BirdCard(
                     backgroundImage: "url('/img/container_info.svg')",
                     backgroundSize: "cover",
                 }}
-                className="w-[150px] min-h-[120px] absolute -mt-10 ml-4 px-2 pt-3 pb-2 select-none"
+                className="min-w-[150px] max-w-[180px] min-h-[120px] absolute -mt-12 ml-4 px-2 pt-3 pb-2 select-none"
             >
-                <ul className="bg-white h-full rounded-xs w-full mt-[7px] p-1 text-neutral-800 text-xs font-pokemon-smaller">
-                    <li className="">
-                        <span className="font-bold">Scientific name:</span>
-                        <br />
-                        <span className="mx-2 -mt-1 block">{selectedBird?.scientificName || "???"}</span>
+                <ul
+                    style={{
+                        lineHeight: 0.8,
+                    }}
+                    className="details-bg bg-white min-h-[90px] rounded-xs w-full mt-[7px] p-1 text-black mr-3 text-base font-pokemon-smaller leading-tight space-y-0.5"
+                >
+                    <li>
+                        <span className="text-gray-500 mr-1">SCI</span> <i>{selectedBird?.scientificName || "???"}</i>
                     </li>
-                    <li className="">
-                        <span className="font-bold">Family:</span> {selectedBird?.family || "???"}
+                    <li>
+                        <span className="text-gray-500 mr-1">FAM</span> <i>{selectedBird?.family || "???"}</i>
                     </li>
-                    <li className="flex">
-                        <span className="font-bold">Habitat:</span>
-                        {selectedBird?.pb && <span className="ml-1 px-1 bg-yellow-200 text-xs pixel-corners-1">pb</span>}
-                        {selectedBird?.na && <span className="ml-1 px-1 bg-blue-200 text-xs pixel-corners-1">na</span>}
-                        {selectedBird?.ca && <span className="ml-1 px-1 bg-green-200 text-xs pixel-corners-1">ca</span>}
+                    <li className="flex items-center">
+                        <span className="text-gray-500 mr-1">HAB</span>
+                        {selectedBird?.pb && <span className="ml-1 h-[14px] px-1 leading-[14px] bg-yellow-200 text-[10px] pixel-corners-1 uppercase">pb</span>}
+                        {selectedBird?.na && <span className="ml-1 h-[14px] px-1 leading-[14px] bg-blue-200 text-[10px] pixel-corners-1 uppercase">na</span>}
+                        {selectedBird?.ca && <span className="ml-1 h-[14px] px-1 leading-[14px] bg-green-200 text-[10px] pixel-corners-1 uppercase">ca</span>}
                     </li>
-                    <li className="">
-                        <span className="font-bold">Description:</span> {selectedBird?.description || "???"}
+                    <li>
+                        <span className="font-bold">DESC</span> {selectedBird?.description || "???"}
                     </li>
                 </ul>
 

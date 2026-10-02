@@ -1,14 +1,15 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
-import { arrowBoxLeftSvg, CameraSvg } from '../imageSvg';
 import { useRouter } from 'next/navigation';
 
 
-export default function LateralRight({ children, target, setTop, onAction }: { children?: React.JSX.Element, target?: string, setTop?: string | number, onAction?: () => void }) {
+export default function LateralRight({ children, target, label, onAction, positionClassName = "bottom-[calc(50vw-32px)] md:bottom-[145px]" }: { children?: React.JSX.Element, target?: string, label?: string, onAction?: () => void, positionClassName?: string }) {
     const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
     const [offsetRight, setOffsetRight] = useState(0);
     const [timerTouch, setTimerTouch] = useState<NodeJS.Timeout | null>(null);
+    // drives the right transition: easing while dragging makes the tab lag behind the finger
+    const [isDragging, setIsDragging] = useState(false);
     const draggingRef = useRef(false);
     const startXRef = useRef(0);
     const startOffsetRef = useRef(0);
@@ -35,6 +36,7 @@ export default function LateralRight({ children, target, setTop, onAction }: { c
         clearTimeout(timerTouch!);
         setTimerTouch(null);
         draggingRef.current = false;
+        setIsDragging(false);
         // snap to -90 if offset is less than -45, else snap to 0
         setOffsetRight(prev => (prev < -55 ? -80 : 0));
         window.removeEventListener('mousemove', handleMove);
@@ -76,6 +78,7 @@ export default function LateralRight({ children, target, setTop, onAction }: { c
 
         setOffsetRight(-30);
         draggingRef.current = true;
+        setIsDragging(true);
         startXRef.current =
             'touches' in e ? e.touches[0].clientX : e.clientX;
         startOffsetRef.current = offsetRight;
@@ -121,7 +124,12 @@ export default function LateralRight({ children, target, setTop, onAction }: { c
         }
     }, [offsetRight]);
 
+    // 0 at rest → 1 at full pull (offset runs 0 → -80); fades in the label as the tab is dragged out
+    const reveal = Math.min(Math.max(-offsetRight, 0) / 80, 1);
+
     return (
+        // Positioning + shadow live on this wrapper: the pixel-corner clip-path on the
+        // inner element would cut off any shadow drawn on the element itself.
         <div
             onMouseDown={startDrag}
             onTouchStart={startDrag}
@@ -152,46 +160,62 @@ export default function LateralRight({ children, target, setTop, onAction }: { c
                     onAction?.();
                 }
             }}
+            aria-label={label ?? "Open"}
+            role="button"
             style={{
-                clipPath: "polygon(20% 0, 100% 0, 100% 100%, 20% 100%, 5% 85%, 5% 15%)",
-                right: `${-80 - offsetRight}px`,
+                right: `${-120 - offsetRight}px`,
                 position: 'absolute',
-                bottom: "170px",
-                cursor: 'grab',
-                transition: 'right 0.2s ease-out',
-                background: "linear-gradient(160deg, #e85d63, #c63f44 70%)",
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                cursor: isDragging ? 'grabbing' : 'grab',
+                transition: isDragging ? 'none' : 'right 0.2s ease-out',
+                // hard, offset pixel shadow + a soft one underneath for lift
+                filter: 'drop-shadow(0 3px 0 rgba(0,0,0,0.35)) drop-shadow(0 8px 8px rgba(0,0,0,0.3))',
                 userSelect: 'none',
                 WebkitTouchCallout: 'none',
                 WebkitUserSelect: 'none',
             }}
-            className='h-[96px] w-[120px] z-90 flex items-center justify-between px-2'
+            className={`group z-90 h-[96px] w-[160px] ${positionClassName}`}
         >
-            {/* Optional decorative border with SVG */}
-            <svg
-                className='absolute top-0 left-0 h-[96px] w-[120px] pointer-events-none'
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
+            <div
+                style={{
+                    // bevel baked into the background instead of a box-shadow: this element also has
+                    // the pixel-corners clip-path, and a box-shadow is rasterized in a separate pass from
+                    // the clip — at phone pixel ratios the two passes round clip-path's fractional
+                    // coordinates slightly differently, leaving a hairline seam at the clipped edge.
+                    // A background is clipped in the same pass, so it can't drift out of alignment.
+                    background: [
+                        "linear-gradient(to bottom, rgba(255,255,255,0.22) 0 2px, transparent 2px calc(100% - 2px), rgba(0,0,0,0.18) calc(100% - 2px))",
+                        "linear-gradient(160deg, #e85d63, #c63f44 70%)",
+                    ].join(", "),
+                }}
+                className='pixel-corners-8-border [--border-color:#9e4042] flex h-full w-full items-stretch transition-transform duration-150 group-hover:-translate-x-1'
             >
-                <polygon
-                    points="20,0 130,0 130,100 20,100 5,85 5,15"
-                    fill="transparent"
-                    stroke="#404040aa"
-                    strokeWidth="3"
-                />
-            </svg>
+                {/* visible handle: icon at its native 24px grid, engraved like a grip (quiet, but still says what it does) */}
+                <div className='flex flex-1 items-center justify-center'>
+                    <div className='h-6 w-6 text-white/60 [&_svg]:[filter:drop-shadow(0_1px_0_rgba(0,0,0,0.25))]!'>{children}</div>
+                </div>
 
-            {/* Left icon */}
-            <div className='flex items-center justify-center w-[28px] h-[28px] mx-[2px]'>
-                {children}
-            </div>
+                {/* one background instead of two borders: same reasoning as the bevel above — this keeps
+                    the dark and light lines from drifting apart at the clipped edges */}
+                <div className='my-auto h-[64px] w-[3px] shrink-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.25)_0_1px,#9e4042_1px_3px)]' />
 
-            {/* Vertical Divider */}
-            <div className='h-2/3 w-1 border-r-2 border-neutral-700/40 mx-2'></div>
+                {/* revealed while dragging */}
+                <div
+                    style={{ opacity: reveal }}
+                    className='flex w-[80px] shrink-0 items-center justify-start gap-1.5 pl-2'
+                >
+                    <svg width="8" height="14" viewBox="0 0 4 7" shapeRendering="crispEdges" className='shrink-0 text-white/90' aria-hidden>
+                        <path d="M3 0h1v1H3zM2 1h1v1H2zM1 2h1v1H1zM0 3h1v1H0zM1 4h1v1H1zM2 5h1v1H2zM3 6h1v1H3z" fill="currentColor" />
+                    </svg>
+                    {label && (
+                        <span className='font-pokemon text-xs uppercase text-white [text-shadow:1px_1px_0_rgba(0,0,0,0.35)]'>
+                            {label}
+                        </span>
+                    )}
+                </div>
 
-            {/* Main icon */}
-            <div className='flex items-center justify-center flex-1'>
-                {/* <span className='text-white text-xl'>{arrowBoxLeftSvg}</span> */}
+                {/* never on screen: keeps the tab anchored while it slides.
+                    39px leaves the handle 34px wide, so the 24px icon centres on whole pixels (5px each side) */}
+                <div className='w-[39px] shrink-0' />
             </div>
         </div>
     );

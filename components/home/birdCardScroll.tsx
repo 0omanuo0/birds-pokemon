@@ -1,36 +1,45 @@
+import { memo } from "react";
 
-
-
-
-export default function BirdCardScroll(
-    { bird, setSelectedBird, known_bird }
-        : { bird: any, setSelectedBird: (bird: any) => void, known_bird: boolean }
+function BirdCardScroll(
+    { bird, setSelectedBird, known, selected, indent }
+        : { bird: any, setSelectedBird: (bird: any) => void, known: boolean, selected: boolean, indent: number }
 ) {
+    const tone = selected
+        ? "bg-[#202023] text-yellow-500"
+        : known
+            ? "bg-[#525258] text-white"
+            : "bg-[#3e3e40] text-neutral-500";
+
+    const sciTone = selected
+        ? "text-yellow-500/60"
+        : known
+            ? "text-neutral-300"
+            : "text-neutral-500";
+
     return (
         <li
-            id={"bird-item-" + bird.id.toString()}
-            className={`flex items-center px-4 py-1 -mr-2 bg-neutral-600 pixel-corners-4 h-[32px] select-none`}
-            key={bird.id.toString()}
+            style={{ marginLeft: indent }}
+            className={`relative flex h-[32px] shrink-0 cursor-pointer select-none items-center gap-2 overflow-hidden pl-3 pr-4 -mr-2 pixel-corners-4 transition-[margin-left,background-color,color] duration-150 hover:brightness-110 ${tone}`}
             onClick={() => setSelectedBird(bird)}
         >
-            <>
-                {
-                    known_bird ?
-                        <span
-                            className="text-base font-pokemon whitespace-nowrap overflow-ellipsis pr-2"
-                        >
-                            {bird.name}
-                        </span>
-                        : <span
-                            className="text-base font-pokemon whitespace-nowrap  min-w-0 pr-2 mr-2"
-                        >{"???"}</span>
-                }
-                <span
-                    className={"text-xs text-neutral-400 font-pokemon whitespace-nowrap overflow-hidden text-ellipsis flex-shrink mt-[2px] pr-2" }
-                >
-                    {bird.scientificName || "???"}
-                </span>
-            </>
-        </li >
+            {/* pixel cursor, like the Gen 4/5 dex list; drawn 2x on a 3×5 grid so it stays crisp */}
+            {selected && (
+                <svg width="6" height="10" viewBox="0 0 3 5" shapeRendering="crispEdges" className="-mr-0.5 shrink-0" aria-hidden>
+                    <path d="M0 0h1v1H0zM0 1h2v1H0zM0 2h3v1H0zM0 3h2v1H0zM0 4h1v1H0z" fill="currentColor" />
+                </svg>
+            )}
+
+            {/* name keeps priority; the scientific name gives way first */}
+            <span className="min-w-0 max-w-full shrink-0 truncate font-pokemon text-base leading-none">
+                {known ? bird.name : "???"}
+            </span>
+            <span className={`mt-[2px] min-w-0 truncate font-pokemon text-xs leading-none ${sciTone}`}>
+                {bird.scientificName || "???"}
+            </span>
+        </li>
     )
 }
+
+// Rows far from the selection all get the same saturated indent, so memo lets them
+// skip re-rendering while the wheel moves.
+export default memo(BirdCardScroll);

@@ -13,6 +13,9 @@ export interface Bird {
     na : boolean;
     ca : boolean;
     pb : boolean;
+    nameEn?: string;
+    // SEO rarity code R1/R2 present in seo_notes
+    rare?: boolean;
 };
 
 export interface Sighting{

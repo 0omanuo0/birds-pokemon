@@ -9,8 +9,10 @@ import LateralLeft from "../nav/lateralLeft";
 import LateralRight from "../nav/lateralRight";
 import { addSvg, CameraSvg, homeSvg, searchSvg, userSvg } from "../imageSvg";
 import Dialog from "./dialog";
-import Noise from "@/components/turbulenceNoise";
+import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
 import { useRouter } from "next/navigation";
+import type { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
+import { loadBirdDescription } from "@/lib/birdDescription";
 
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useUser } from "../userContext";
@@ -24,7 +26,7 @@ export default function Main({ birds_default, birds_seen}: { birds_default: Bird
     const [selectedBird, setSelectedBird] = useState<Bird>(birds_default[0]);
 
 
-    const [_, setIsFiltered] = useState(false);
+    const [isFiltered, setIsFiltered] = useState(false);
     const [birdsFiltered, setBirdsFiltered] = useState(birds_default);
     const [known_bird, setKnownBird] = useState<boolean[]>([]);
 
@@ -61,21 +63,24 @@ export default function Main({ birds_default, birds_seen}: { birds_default: Bird
         }
     }, [user, router]);
 
-    const [loaderTimer, setLoaderTimer] = useState<NodeJS.Timeout | null>(null);
+    // Once a bird stays selected for PREFETCH_DELAY_MS, get its page ready before the long-press:
+    // the full page data and its Wikipedia description. Only for seen birds, the only ones that can be opened.
+    const PREFETCH_DELAY_MS = 700;
+    const selectedIndex = selectedBird ? birdsFiltered.findIndex(b => b.id === selectedBird.id) : -1;
+    const selectedKnown = selectedIndex >= 0 && !!known_bird[selectedIndex];
     useEffect(() => {
-        // preload /birds/id when the selected bird changes, but wait 1s before doing so
-        if (selectedBird) {
-            if (loaderTimer) {
-                clearTimeout(loaderTimer);
-            }
-            setLoaderTimer(setTimeout(() => {
-                const birdId = (selectedBird as any).bird_id || selectedBird.id;
-                console.log("Preloading bird:", birdId);
-                router.prefetch(`/bird/${birdId}`);
-            }, 1000));
+        if (!selectedBird || !selectedKnown) return;
+        const timer = setTimeout(() => {
+            const birdId = (selectedBird as any).bird_id || selectedBird.id;
+            // "full": without it, a dynamic page like /bird/[id] isn't actually prefetched
+            router.prefetch(`/bird/${birdId}`, { kind: "full" as PrefetchKind });
+            loadBirdDescription(selectedBird.scientificName).catch(() => { });
+        }, PREFETCH_DELAY_MS);
+        // spinning past a bird cancels its prefetch
+        return () => clearTimeout(timer);
+    }, [selectedBird, selectedKnown, router]);
 
-        }
-
+    useEffect(() => {
         if( isFirstSpin) {
             setIsFirstSpin(false);
             return;
@@ -96,42 +101,40 @@ export default function Main({ birds_default, birds_seen}: { birds_default: Bird
     //get buho real in the known birds
     
 
+    // frame, bezel and screen height live in DeviceShell (root layout); this only fills the two cells
     return (
-        <main
-            className="flex relative h-full flex-col items-center justify-between bg-neutral-500 overflow-hidden md:rounded-2xl"
-        >
-            <LateralLeft target='/identify' setTop="65%">{CameraSvg}</LateralLeft>
-            <LateralRight onAction={() => {
+        <>
+            <DeviceScreen>
+                <Dialog
+                    birds_default={birds_default} setBirdsFiltered={setBirdsFiltered}
+                    setKnownBird={setKnownBird} birds_seen={birds_seen}
+                    showDialogSearch={showDialogSearch} setShowDialogSearch={setShowDialogSearch}
+                    onClose={() => setShowDialogSearch(false)}
+                />
+                <Content
+                    birds={birdsFiltered} birdsSeen={birds_seen}
+                    setSelectedBird={setSelectedBird} selectedBird={selectedBird}
+                    known_bird={known_bird} isFiltered={isFiltered}
+                />
+            </DeviceScreen>
+            <DeviceControls>
+            <LateralLeft target='/identify' label="Camera">{CameraSvg}</LateralLeft>
+            <LateralRight label="Search" onAction={() => {
                 setShowDialogSearch(prev => !prev);
-            }} setTop="65%">{searchSvg}</LateralRight>
-
-            <section
-                className="relative md:h-[500px] w-full h-fit">
-                <div className="h-full w-full flex flex-col justify-center items-center bg-neutral-900 px-3 pb-3">
-                    <Noise />
-                    <nav className="flex flex-row justify-between items-center w-full my-2 h-8">
-                        <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                        <span className="text-neutral-300 text-sm font-medium font-pokemon">Birds Pokedex</span>
-                    </nav>
-                    <div
-                        className="w-full h-full bg-neutral-700 pixel-corners-4 relative overflow-hidden noise-effect shining"
-                    >
-                        <Dialog
-                            birds_default={birds_default} setBirdsFiltered={setBirdsFiltered}
-                            setKnownBird={setKnownBird} birds_seen={birds_seen}
-                            showDialogSearch={showDialogSearch} setShowDialogSearch={setShowDialogSearch}
-                            onClose={() => setShowDialogSearch(false)}
-                        />
-                        <Content
-                            birds={birdsFiltered} birdsSeen={birds_seen}
-                            setSelectedBird={setSelectedBird} selectedBird={selectedBird}
-                            known_bird={known_bird}
-                        />
-                    </div>
-                </div>
-            </section>
+            }}>{searchSvg}</LateralRight>
+            <div className="font-pokemon-ns text-lg text-neutral-400 flex gap-6 my-2 shrink-0">
+                <span><span>◉</span>Press · <b className="text-amber-400">ALL</b></span>
+                <span><span>⊙</span>Hold · <b className="text-amber-400">DEX</b></span>
+            </div>
             <PokeballRotation
                 ref={pokeballRef}
+                snapStep={degrees_per_item}
+                onDoubleTap={() => {
+                    // runs inside the tap, so the browser allows it; no-op where unsupported (iPhone Safari)
+                    if (!document.fullscreenEnabled) return;
+                    if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
+                    else document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => { });
+                }}
                 onWheel={absoluteRotation => {
                     // console.log(absoluteRotation);
                     // each rotation is 20 items so each item is 18 degrees
@@ -191,13 +194,13 @@ export default function Main({ birds_default, birds_seen}: { birds_default: Bird
                     })
                 }
                 onLongPress={() => {
-                    if (known_bird[selectedBird.id]) {
+                    if (known_bird[birdsFiltered.findIndex(b => b.id === selectedBird.id)]) {
                         router.push(`/bird/${(selectedBird as any)?.bird_id || selectedBird?.id}`);
                     }
                 }}
 
             />
-
-        </main>
+            </DeviceControls>
+        </>
     );
 }
