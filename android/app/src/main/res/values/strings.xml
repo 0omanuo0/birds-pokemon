@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Birds Dex</string>
+    <string name="title_activity_main">Birds Dex</string>
+    <string name="package_name">com.manu365.birdsdex</string>
+    <string name="custom_url_scheme">com.manu365.birdsdex</string>
+</resources>

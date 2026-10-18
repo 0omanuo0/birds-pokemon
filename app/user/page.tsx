@@ -3,7 +3,7 @@ import { homeSvg } from "@/components/imageSvg";
 import LateralLeft from "@/components/nav/lateralLeft";
 import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
 import { neon } from "@neondatabase/serverless";
-import { getSessionOrDevBypass } from "@/lib/session";
+import { defaultUserEmail, getSessionOrDevBypass } from "@/lib/session";
 import { redirect } from 'next/navigation';
 
 
@@ -54,7 +54,8 @@ export default async function BirdPage({ params }: { params: Promise<{ id: strin
                                     </div>
                                 </div>
                                 <div className="absolute bottom-0 left-0 w-full flex justify-center">
-                                    <ButtonLogout />
+                                    {/* signing out is meaningless with the default account: it would sign straight back in */}
+                                    {!(await defaultUserEmail()) && <ButtonLogout />}
                                 </div>
             </DeviceScreen>
             <DeviceControls>

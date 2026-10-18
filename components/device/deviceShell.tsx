@@ -35,7 +35,9 @@ export default function DeviceShell({ children }: { children: ReactNode }) {
 
     return (
         <div
-            className="h-[100dvh] md:py-4 2xl:py-8 w-full 2xl:flex 2xl:items-center"
+            // pb: the Android app's bottom bar (0 elsewhere), see --app-bottom-bar in globals.css; everything
+            // below the screen is bottom-anchored, so the pokeball and tabs rise with it
+            className="h-[100dvh] pb-[var(--app-bottom-bar)] md:py-4 2xl:py-8 w-full 2xl:flex 2xl:items-center"
             style={{ backgroundImage: "linear-gradient(45deg,#000 10%, #333 60%)" }}
         >
             <div className="text-white md:w-[420px] md:h-[740px] 2xl:w-[500px] 2xl:h-[885px] h-full mx-auto md:rounded-3xl overflow-hidden md:p-2 md:bg-neutral-700">

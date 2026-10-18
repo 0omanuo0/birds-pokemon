@@ -2,13 +2,14 @@ import { ReactNode } from "react";
 
 // Top grid cell of DeviceShell. The top padding clears the bezel's LED/title row (my-2 + h-8 = 3rem).
 // The page content remounts on navigation, so the fade-in plays while the shell's bezel animates.
-export default function DeviceScreen({ children, className = "" }: { children: ReactNode; className?: string }) {
+// animate={false} is for the loading placeholder, so the page that replaces it is the only fade the user sees.
+export default function DeviceScreen({ children, className = "", animate = true }: { children: ReactNode; className?: string; animate?: boolean }) {
     return (
         <section className="relative col-start-1 row-start-1 min-h-0 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+3rem)]">
             <div className={`relative flex h-full w-full flex-col overflow-hidden bg-neutral-800 pixel-corners-4 noise-effect ${className}`}>
                 {/* the fade is on this wrapper, not the panel: the panel's noise-effect uses an SVG turbulence
                     filter that would be re-rasterized every frame if the panel's opacity animated */}
-                <div className="relative flex h-full w-full flex-col animate-[device-screen-in_220ms_ease-out] will-change-[opacity]">
+                <div className={`relative flex h-full w-full flex-col ${animate ? "animate-[device-screen-in_220ms_ease-out] will-change-[opacity]" : ""}`}>
                     {children}
                 </div>
                 <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_6px_1px_#171717]" aria-hidden />

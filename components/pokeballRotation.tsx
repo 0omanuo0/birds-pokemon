@@ -27,6 +27,13 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     // so it belongs in a ref rather than state.
     const velocityRef = useRef(0);
     const MAX_VELOCITY = 20;
+    // The Android app (html[data-app]) is touch-only and the list is ~340 birds long: at 1:1 a flick coasted
+    // only a few items. In the app a drag turns the wheel APP_GAIN times as far and a flick glides longer.
+    // Read when used rather than at render, so server and client render the same.
+    const inApp = () => typeof document !== "undefined" && document.documentElement.hasAttribute("data-app");
+    const APP_GAIN = 2;
+    const WEB_FRICTION = 0.95; // per 10ms
+    const APP_FRICTION = 0.975;
     // below this speed (degrees per 10ms) the wheel stops coasting and pulls onto the nearest item
     const SNAP_SPEED = 1.5;
     const SNAP_STIFFNESS = 0.08;
@@ -106,10 +113,11 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
 
         const startAngle = Math.atan2(startCords.y, startCords.x) * (180 / Math.PI);
         const currentAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-        const angleDifference = (currentAngle - startAngle);
+        const gain = inApp() ? APP_GAIN : 1;
+        const angleDifference = (currentAngle - startAngle) * gain;
 
         if (isRotating) {
-            velocityRef.current = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, angleDifference));
+            velocityRef.current = Math.max(-MAX_VELOCITY * gain, Math.min(MAX_VELOCITY * gain, angleDifference));
             setRotation(pokRotationRef.current + angleDifference);
             setStartCoords({ x: deltaX, y: deltaY });
         }
@@ -170,7 +178,7 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                 newRotation = Math.max(endScroll, newRotation - Math.abs(newRotation - endScroll) * 0.1); // Spring back to endScroll
 
             setRotation(newRotation);
-            velocityRef.current = prevVelocity * Math.pow(0.95, steps); // Apply friction
+            velocityRef.current = prevVelocity * Math.pow(inApp() ? APP_FRICTION : WEB_FRICTION, steps); // Apply friction
 
             inertiaFrameRef.current = requestAnimationFrame(tick);
         }

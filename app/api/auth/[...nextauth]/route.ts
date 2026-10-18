@@ -14,6 +14,10 @@ const authOptions = {
         }),
     ],
 
+    // next-auth's built-in sign-in page can't be used in the Android app (Google blocks it in a WebView),
+    // so every /api/auth/signin redirect lands on our own page, which also handles the native sign-in
+    pages: { signIn: "/login" },
+
     secret: process.env.NEXTAUTH_SECRET
 
 };
