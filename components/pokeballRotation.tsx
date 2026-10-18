@@ -31,7 +31,10 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     // only a few items. In the app a drag turns the wheel APP_GAIN times as far and a flick glides longer.
     // Read when used rather than at render, so server and client render the same.
     const inApp = () => typeof document !== "undefined" && document.documentElement.hasAttribute("data-app");
-    const APP_GAIN = 2;
+    const APP_GAIN = 1.5;
+    // items are 18deg apart and a frame covers ~1.7 "10ms steps": 10 keeps the spin at about one item per
+    // frame, so the wheel rolls past items instead of skipping several each frame (the web cap is 20)
+    const APP_MAX_VELOCITY = 10;
     const WEB_FRICTION = 0.95; // per 10ms
     const APP_FRICTION = 0.975;
     // below this speed (degrees per 10ms) the wheel stops coasting and pulls onto the nearest item
@@ -117,7 +120,8 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
         const angleDifference = (currentAngle - startAngle) * gain;
 
         if (isRotating) {
-            velocityRef.current = Math.max(-MAX_VELOCITY * gain, Math.min(MAX_VELOCITY * gain, angleDifference));
+            const maxVelocity = inApp() ? APP_MAX_VELOCITY : MAX_VELOCITY;
+            velocityRef.current = Math.max(-maxVelocity, Math.min(maxVelocity, angleDifference));
             setRotation(pokRotationRef.current + angleDifference);
             setStartCoords({ x: deltaX, y: deltaY });
         }
