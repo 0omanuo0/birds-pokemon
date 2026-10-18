@@ -26,7 +26,7 @@ android {
         }
     }
     defaultConfig {
-        buildConfigField "String", "SITE_URL", "\"${localProps.getProperty('birdsdex.siteUrl', 'https://birds-pokemon.vercel.app')}\""
+        buildConfigField "String", "SITE_URL", "\"${localProps.getProperty('birdsdex.siteUrl', 'https://android-birds-pokemon.vercel.app')}\""
         buildConfigField "String", "SESSION_TOKEN", "\"${localProps.getProperty('birdsdex.sessionToken', '')}\""
         buildConfigField "String", "GOOGLE_WEB_CLIENT_ID", "\"${localProps.getProperty('birdsdex.googleWebClientId', '')}\""
         applicationId "com.manu365.birdsdex"

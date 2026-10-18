@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     appName: "Birds Dex",
     webDir: "cap-www",
     server: {
-        url: process.env.CAP_SERVER_URL ?? "https://birds-pokemon.vercel.app",
+        url: process.env.CAP_SERVER_URL ?? "https://android-birds-pokemon.vercel.app",
         // an unreachable server shows cap-www/index.html instead of Android's raw error page
         errorPath: "index.html",
     },
