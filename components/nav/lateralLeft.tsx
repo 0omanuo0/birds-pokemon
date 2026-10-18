@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
 
 
 export default function LateralLeft({ children, target, label, positionClassName = "bottom-[calc(50vw-32px)] md:bottom-[145px]" }: { children?: React.JSX.Element, target?: string, label?: string, positionClassName?: string }) {
@@ -14,6 +15,14 @@ export default function LateralLeft({ children, target, label, positionClassName
     const startXRef = useRef(0);
     const startOffsetRef = useRef(0);
     const router = useRouter();
+
+    // Get the target page's data ready while the user is still on this page. Without "full" a dynamic page is
+    // only prefetched up to its loading boundary, so the server (and database) work started at the moment
+    // of the drag: the main source of the slow navigation in the Android app. Kept for 5 min, and server
+    // actions that change data (revalidatePath) clear it.
+    useEffect(() => {
+        if (target) router.prefetch(target, { kind: "full" as PrefetchKind });
+    }, [target, router]);
 
     // MOVE handler (mouse or touch)
     const handleMove = (e: MouseEvent | TouchEvent) => {
@@ -50,7 +59,8 @@ export default function LateralLeft({ children, target, label, positionClassName
     ) => {
         e.preventDefault();
 
-        router.prefetch(target || '/');
+        // refresh the prefetch too (it may have gone stale); action tabs without a target have nothing to prefetch
+        if (target) router.prefetch(target, { kind: "full" as PrefetchKind });
         if (isIOS) {
             setTimerTouch(setTimeout(() => {
                 const audio_ = new Audio("/audio/SFX_SWITCH.wav");

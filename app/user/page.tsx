@@ -17,18 +17,17 @@ export default async function BirdPage({ params }: { params: Promise<{ id: strin
         return; // Prevent further execution
     }
     const sql = neon(process.env.DATABASE_URL || "");
-    const [user] = await sql`SELECT * FROM users WHERE email = ${session.user.email};`;
-    const [{ count: sightings }] = await sql`
-        SELECT COUNT(DISTINCT bird_id) 
-        FROM sightings 
-        WHERE user_id = ${user.user_id};
-    `;
-    const [{ count: images }] = await sql`
-        SELECT COUNT(*) 
-        FROM sightings 
-        WHERE user_id = ${user.user_id};
-    `;
-    const [{ count: birds }] = await sql`SELECT COUNT(*) FROM birds;`;
+    const email = session.user.email;
+    // one round trip to the database instead of four in a row: the queries are independent, and both
+    // sighting counts come from a single scan that joins the user by email (so no separate user lookup)
+    const [[{ sightings, images }], [{ count: birds }]] = await Promise.all([
+        sql`
+            SELECT COUNT(DISTINCT s.bird_id) AS sightings, COUNT(*) AS images
+            FROM sightings s JOIN users u ON u.user_id = s.user_id
+            WHERE u.email = ${email};
+        `,
+        sql`SELECT COUNT(*) FROM birds;`,
+    ]);
 
     const safeImage = `https://images.weserv.nl/?url=${encodeURIComponent(session.user.image || "")}`;
 
