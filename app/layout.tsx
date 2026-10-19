@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import FullscreenOnTap from "@/components/fullscreenOnTap";
+import AppViewportHeight from "@/components/appViewportHeight";
 import DeviceShell from "@/components/device/deviceShell";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -83,6 +84,7 @@ export default async function RootLayout({
                 className={`${geistSans.variable} ${geistMono.variable} antialiased text-white`}
             >
                 <FullscreenOnTap />
+                <AppViewportHeight />
                 <Providers session={session} user={user}>
                     <DeviceShell>{children}</DeviceShell>
                 </Providers>

@@ -74,10 +74,14 @@
 :root {
   /* dark strip under the device: keeps the pokeball and tabs out of the system's swipe-up/home gesture zone */
   --app-bottom-bar: 0px;
+  --shell-h: 100dvh;
 }
 
 html[data-app] {
   --app-bottom-bar: calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 20px);
+  /* height the device shell is sized from: set by AppViewportHeight to the full height measured while the
+     keyboard is closed, so opening the keyboard (which shrinks the WebView) doesn't squash the layout */
+  --shell-h: var(--app-vh, 100dvh);
 }
 
 /* The full-screen SVG turbulence filter (plus the infinite opacity animation below) is repainted constantly

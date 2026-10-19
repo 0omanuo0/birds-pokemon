@@ -8,14 +8,16 @@ type ScreenSize = "standard" | "tall";
 
 // Row 1 = screen, row 2 = controls (pokeball, tabs). Full class strings so Tailwind can see them.
 // Keep each SCREEN_ROWS entry and its BEZEL_HEIGHT entry at the same values.
+// --shell-h is the viewport height (100dvh); in the Android app it's the height measured before the keyboard
+// opened, so the layout doesn't squash when the keyboard shrinks the WebView (see globals.css, AppViewportHeight).
 const SCREEN_ROWS: Record<ScreenSize, string> = {
-    standard: "grid-rows-[calc(100dvh-50dvw-80px)_minmax(0,1fr)] md:grid-rows-[450px_minmax(0,1fr)]",
-    tall: "grid-rows-[calc(100dvh-50dvw-24px)_minmax(0,1fr)] md:grid-rows-[510px_minmax(0,1fr)]",
+    standard: "grid-rows-[calc(var(--shell-h)_-_50dvw_-_80px)_minmax(0,1fr)] md:grid-rows-[450px_minmax(0,1fr)]",
+    tall: "grid-rows-[calc(var(--shell-h)_-_50dvw_-_24px)_minmax(0,1fr)] md:grid-rows-[510px_minmax(0,1fr)]",
 };
 
 const BEZEL_HEIGHT: Record<ScreenSize, string> = {
-    standard: "h-[calc(100dvh-50dvw-80px)] md:h-[450px]",
-    tall: "h-[calc(100dvh-50dvw-24px)] md:h-[510px]",
+    standard: "h-[calc(var(--shell-h)_-_50dvw_-_80px)] md:h-[450px]",
+    tall: "h-[calc(var(--shell-h)_-_50dvw_-_24px)] md:h-[510px]",
 };
 
 function sizeFor(pathname: string): ScreenSize | null {
@@ -37,7 +39,7 @@ export default function DeviceShell({ children }: { children: ReactNode }) {
         <div
             // pb: the Android app's bottom bar (0 elsewhere), see --app-bottom-bar in globals.css; everything
             // below the screen is bottom-anchored, so the pokeball and tabs rise with it
-            className="h-[100dvh] pb-[var(--app-bottom-bar)] md:py-4 2xl:py-8 w-full 2xl:flex 2xl:items-center"
+            className="h-[var(--shell-h)] pb-[var(--app-bottom-bar)] md:py-4 2xl:py-8 w-full 2xl:flex 2xl:items-center"
             style={{ backgroundImage: "linear-gradient(45deg,#000 10%, #333 60%)" }}
         >
             <div className="text-white md:w-[420px] md:h-[740px] 2xl:w-[500px] 2xl:h-[885px] h-full mx-auto md:rounded-3xl overflow-hidden md:p-2 md:bg-neutral-700">
