@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import FullscreenOnTap from "@/components/fullscreenOnTap";
 import AppViewportHeight from "@/components/appViewportHeight";
+import InstallPrompt from "@/components/installPrompt";
 import DeviceShell from "@/components/device/deviceShell";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -85,6 +86,7 @@ export default async function RootLayout({
             >
                 <FullscreenOnTap />
                 <AppViewportHeight />
+                <InstallPrompt />
                 <Providers session={session} user={user}>
                     <DeviceShell>{children}</DeviceShell>
                 </Providers>
