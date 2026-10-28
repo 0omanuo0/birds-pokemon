@@ -54,4 +54,9 @@ certificates
 /migrations/
 /scripts/
 .cache/
-/docs/fun-facts-review.md
+/docs/
+
+# agent files (AGENTS.md is re-created by `next dev`)
+AGENTS.md
+CLAUDE.md
+/.claude/
