@@ -8,7 +8,6 @@ const authOptions = {
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
             // this profile callback still isn’t enough by itself
             profile(profile) {
-                console.log("Google profile:", profile);
                 return {...profile, id: profile.sub, name: profile.name, email: profile.email, image: profile.picture };
             },
         }),
