@@ -151,6 +151,36 @@
   font-display: swap;
 }
 
+/* The layout's font sizes were tuned for PokemonBW (cap height 0.625em). DS (1.125em) and Classic (0.875em) are
+   much bigger at the same font-size, so the copies used in the stacks are scaled down with size-adjust to match
+   BW's cap height (0.625/1.125 = 56%, 0.625/0.875 = 71%; Classic is also very wide, so it goes a bit lower).
+   'PokemonBW2' itself stays unscaled: .font-pokemon-bw2 sets its own native pixel size. */
+@font-face {
+  font-family: 'PokemonClassic';
+  src: url('/fonts/Pokemon Classic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 64%;
+}
+
+@font-face {
+  font-family: 'PokemonDS';
+  src: url('/fonts/pokemon-ds-font.woff') format('woff'), url('/fonts/pokemon-ds-font.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 56%;
+}
+
+/* Font stacks: the pixel fonts cross each other as fallbacks (so a glyph one lacks comes from another), then a
+   smooth sans last. DS is the default (more readable); Classic is for the Today screen and the buddy's talk. */
+:root {
+  /* --font-geist-sans only exists on <body> (layout.tsx), so on :root it needs a literal fallback or the whole stack is invalid */
+  --font-pixel-ds: 'PokemonDS', 'PokemonClassic', 'PokemonBW', var(--font-geist-sans, system-ui), Arial, sans-serif;
+  --font-pixel-classic: 'PokemonClassic', 'PokemonDS', 'PokemonBW', var(--font-geist-sans, system-ui), Arial, sans-serif;
+}
+
 @font-face {
   font-family: 'PokemonBW';
   src: url('/fonts/pokemon-b-w.otf') format('opentype');
@@ -228,21 +258,28 @@ div {
 
 @layer base {
   .font-pokemon {
-    font-family: 'PokemonBW', sans-serif;
+    font-family: var(--font-pixel-ds);
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.5);
   }
 
+  /* dialogues (the buddy's talk box, components/today/buddy.tsx) wear .pixel-classic: the same classes switch to Classic */
+  .pixel-classic .font-pokemon,
+  .pixel-classic .font-pokemon-ns,
+  .pixel-classic .font-pokemon-smaller {
+    font-family: var(--font-pixel-classic);
+  }
+
   .font-pokemon-ns {
-    font-family: 'PokemonBW', sans-serif;
+    font-family: var(--font-pixel-ds);
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     /* text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5); */
   }
 
   .font-pokemon-smaller {
-    font-family: 'PokemonBW', sans-serif;
+    font-family: var(--font-pixel-ds);
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     /* text-shadow: 0.5px 0.5px 1px rgba(0, 0, 0, 0.1); */

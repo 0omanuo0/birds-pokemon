@@ -159,7 +159,7 @@ export default function Buddy({ bird }: { bird: DayBird }) {
             </div>
 
             {/* the dialogue box, with a tail up to the stage */}
-            <div className="relative mt-[10px] min-h-[68px] border-[3px] border-neutral-900 bg-[#f8f8f8] px-2.5 py-2 pr-6 text-neutral-900 shadow-[inset_0_0_0_2px_#fff,0_0_0_2px_#fff]">
+            <div className="pixel-classic relative mt-[10px] min-h-[68px] border-[3px] border-neutral-900 bg-[#f8f8f8] px-2.5 py-2 pr-6 text-neutral-900 shadow-[inset_0_0_0_2px_#fff,0_0_0_2px_#fff]">
                 <span className="absolute -top-[11px] left-6 border-x-[6px] border-b-[8px] border-x-transparent border-b-neutral-900" aria-hidden />
                 {line === 0 && <small className="mb-1 block font-pokemon text-xs uppercase leading-none text-neutral-500">{t.says(bird.name)}</small>}
                 <p className="font-pokemon text-sm leading-snug" aria-live="polite">

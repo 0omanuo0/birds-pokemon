@@ -101,7 +101,7 @@ export default function BirdCard(
                     style={{
                         lineHeight: 0.8,
                     }}
-                    className="details-bg bg-white min-h-[90px] rounded-xs w-full mt-[7px] p-1 text-black mr-3 text-base font-pokemon-smaller leading-tight space-y-0.5"
+                    className="details-bg bg-white min-h-[90px] rounded-xs w-full mt-[7px] p-1 text-black mr-3 text-sm font-pokemon-smaller leading-tight space-y-0.5"
                 >
                     <li>
                         <span className="text-gray-500 mr-1">SCI</span> <i>{selectedBird?.scientificName || "???"}</i>
