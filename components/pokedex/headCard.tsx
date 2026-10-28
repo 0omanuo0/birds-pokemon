@@ -6,54 +6,55 @@ import { useEffect, useState } from "react";
 // "14 MAR 2026" layout, with the month name from the browser's preferred language.
 // Pieces are formatted separately so the order is fixed (en-US would give "Mar 14, 2026")
 // and the month stays a name (pt-PT turns it into "03" when day+year are in the same pattern).
+// Formatters are built once: constructing an Intl.DateTimeFormat is slow, and this runs on every render of the
+// dex head card and the profile (created lazily, so the browser's language is the one used, not the server's).
+let seenDateFormat: { day: Intl.DateTimeFormat; month: Intl.DateTimeFormat; year: Intl.DateTimeFormat } | null = null;
+
 export function formatSeenDate(unixSeconds: number) {
     const date = new Date(unixSeconds * 1000);
-    const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(undefined, opts).format(date);
+    seenDateFormat ??= {
+        day: new Intl.DateTimeFormat(undefined, { day: "numeric" }),
+        month: new Intl.DateTimeFormat(undefined, { month: "short" }),
+        year: new Intl.DateTimeFormat(undefined, { year: "numeric" }),
+    };
     // some locales abbreviate with a trailing dot ("mar.", "févr.")
-    const month = fmt({ month: "short" }).replace(/\./g, "");
-    return `${fmt({ day: "numeric" })} ${month} ${fmt({ year: "numeric" })}`.toUpperCase();
+    const month = seenDateFormat.month.format(date).replace(/\./g, "");
+    return `${seenDateFormat.day.format(date)} ${month} ${seenDateFormat.year.format(date)}`.toUpperCase();
 }
 
 export default function HeadCard(
     { selectedBird, known_bird }: { selectedBird: any | undefined, known_bird: boolean }
 ) {
     const [location, setLocation] = useState<string | undefined>(undefined);
-    console.log("selectedBird", selectedBird);
-
+    // keyed on the string, not the object: callers pass a freshly spread object, so every re-render restarted the lookup
+    const rawLocation: string | undefined = selectedBird?.location || undefined;
 
     useEffect(() => {
-
-
-        if (!selectedBird || !selectedBird?.location) {
+        if (!rawLocation) {
             setLocation(undefined);
             return;
         }
 
-        if (selectedBird?.location.split(",").length !== 2) {
-            setLocation(selectedBird?.location);
+        const parts = rawLocation.split(",");
+        if (parts.length !== 2) {
+            setLocation(rawLocation);
             return;
         }
 
+        let cancelled = false;
         const timeoutId = setTimeout(() => {
-            const lat = selectedBird?.location?.split(",")[0];
-            const lon = selectedBird?.location?.split(",")[1];
-
-            const url = `/api/reverse-geocode?lat=${lat}&lon=${lon}`;
-
-            fetch(url, {
-                headers: {
-                    'User-Agent': 'BirdsPokemon/1.0 (manu365manu@gmail.com)',
-                }
-            })
+            const [lat, lon] = parts;
+            fetch(`/api/reverse-geocode?lat=${encodeURIComponent(lat.trim())}&lon=${encodeURIComponent(lon.trim())}`)
                 .then(response => response.json())
                 .then(data => {
-                    setLocation(data.location || "???");
+                    // a slower answer for the previous bird mustn't overwrite this one
+                    if (!cancelled) setLocation(data.location || "???");
                 })
                 .catch(error => console.error('Error:', error));
         }, 800); // Wait 800ms before fetching
 
-        return () => clearTimeout(timeoutId);
-    }, [selectedBird]);
+        return () => { cancelled = true; clearTimeout(timeoutId); };
+    }, [rawLocation]);
 
     const locFull = known_bird && location && location !== "???" ? location : undefined;
     // raw sighting location is "lat,lon" (or free text) — more precise for Maps than the geocoded name

@@ -1,6 +1,6 @@
 import { Bird } from "@/lib/types";
 import { BIRD_GROUPS, OTHER_GROUP, groupOf } from "@/lib/birdGroups";
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { memo, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { searchSvg } from "../imageSvg";
 
 type Region = "pb" | "na" | "ca";
@@ -40,7 +40,8 @@ function Chip({ on, onClick, children, title, onClass = "bg-yellow-400 text-neut
     );
 }
 
-export default function Dialog({
+// memo: it stays mounted (closed) under the list, and nothing it shows changes while the wheel spins
+export default memo(function Dialog({
     birds_default, setBirdsFiltered, setKnownBird, birds_seen,
     showDialogSearch, setShowDialogSearch,
     onClose,
@@ -311,4 +312,4 @@ export default function Dialog({
             </div>
         </div>
     );
-}
+});

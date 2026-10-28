@@ -9,6 +9,8 @@ export type PokeballRotationHandle = {
     rotateTo: (rotation: number) => void;
 };
 
+const wheelTransform = (rotation: number) => `translateX(-50%) translateY(calc(50% + 3px)) rotate(${rotation.toFixed(2)}deg)`;
+
 const PokeballRotation = forwardRef<PokeballRotationHandle, {
     onWheel?: (rotation: number) => void; startScroll: number; endScroll: number; onPress?: () => void; onLongPress?: () => void;
     // degrees per item; when set, the wheel settles onto the nearest item instead of stopping anywhere
@@ -29,9 +31,9 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     // true once the hold fired, so the click that follows the release isn't also treated as a press
     const holdFiredRef = useRef(false);
     useEffect(() => () => { if (holdTimerRef.current) clearTimeout(holdTimerRef.current); }, []);
-    const [pokRotation, setPokRotation] = useState(startScroll);
-    const [isRotating, setIsRotating] = useState(false);
-    const [startCords, setStartCoords] = useState({ x: 0, y: 0 });
+    // Drag state lives in refs: it changes on every pointer move, and none of it is rendered.
+    const isRotatingRef = useRef(false);
+    const startCordsRef = useRef({ x: 0, y: 0 });
     // velocity is never read for rendering, only used by the physics loop below,
     // so it belongs in a ref rather than state.
     const velocityRef = useRef(0);
@@ -40,10 +42,14 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     const SNAP_SPEED = 1.5;
     const SNAP_STIFFNESS = 0.08;
     const SNAP_DAMPING = 0.7;
-    // Mirrors pokRotation so the physics loop always reads the latest value
-    // synchronously (no stale closures), without needing React's functional
-    // setState form.
+    // The wheel's rotation. Not state: it changes every pointer move and every inertia frame, and re-rendering the
+    // ball (and its parent) that often is what made the controls lag. setRotation writes the transform straight
+    // to the element; a re-render for any other reason reads the same value back.
     const pokRotationRef = useRef(startScroll);
+    const wheelRef = useRef<HTMLDivElement>(null);
+    // the physics loop and the window key listener outlive the render that started them; they read the latest props here
+    const propsRef = useRef({ onWheel, startScroll, endScroll, snapStep });
+    propsRef.current = { onWheel, startScroll, endScroll, snapStep };
     // requestAnimationFrame instead of setInterval: a plain interval can queue
     // up overdue ticks while the main thread is busy (exactly what happens
     // scrolling heavily) and then fire them in a tight back-to-back burst once
@@ -61,13 +67,14 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     // which previously round-tripped through the parent's onWheel -> setState ->
     // re-render -> new props -> effect fires again.
     function setRotation(next: number) {
+        const { onWheel, startScroll, endScroll } = propsRef.current;
         pokRotationRef.current = next;
-        setPokRotation(next);
         const clamped = Math.min(Math.max(next, startScroll), endScroll);
+        if (wheelRef.current) wheelRef.current.style.transform = wheelTransform(clamped);
         onWheel?.(clamped);
     }
 
-    const clampedRotation = Math.min(Math.max(pokRotation, startScroll), endScroll);
+    const clampedRotation = Math.min(Math.max(pokRotationRef.current, startScroll), endScroll);
 
     useEffect(() => {
         // sync the parent once on mount; subsequent updates go through setRotation above
@@ -96,8 +103,8 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
         const mouseY = e.clientY || e.touches[0].clientY;
         const deltaX = mouseX - centerX;
         const deltaY = mouseY - centerY;
-        setStartCoords({ x: deltaX, y: deltaY });
-        setIsRotating(true);
+        startCordsRef.current = { x: deltaX, y: deltaY };
+        isRotatingRef.current = true;
     }
 
     function handleRotation(e: any) {
@@ -113,16 +120,17 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
         const deltaX = mouseX - centerX;
         const deltaY = mouseY - centerY;
 
+        const startCords = startCordsRef.current;
         const startAngle = Math.atan2(startCords.y, startCords.x) * (180 / Math.PI);
         const currentAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
         let angleDifference = (currentAngle - startAngle);
         // a straight swipe up or down over the middle of the dome counts too (28px per item): thumbs swipe, they don't draw circles
         if (Math.abs(deltaX) < 70) angleDifference += (deltaY - startCords.y) * 18 / 28;
 
-        if (isRotating) {
+        if (isRotatingRef.current) {
             velocityRef.current = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, angleDifference));
             setRotation(pokRotationRef.current + angleDifference);
-            setStartCoords({ x: deltaX, y: deltaY });
+            startCordsRef.current = { x: deltaX, y: deltaY };
         }
     }
 
@@ -142,6 +150,7 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
 
             const prevVelocity = velocityRef.current;
             const prevRotation = pokRotationRef.current;
+            const { snapStep, startScroll, endScroll } = propsRef.current;
 
             if (snapStep && (snapping || Math.abs(prevVelocity) < SNAP_SPEED)) {
                 snapping = true;
@@ -190,7 +199,7 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     }
 
     function stopRotation() {
-        setIsRotating(false);
+        isRotatingRef.current = false;
         applyInertia();
     }
 
@@ -200,6 +209,7 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     // one (e.g. jumping to item 340), so easing there would spin the wheel through
     // everything in between, which looks awful — this just shows where it landed.
     function rotateTo(target: number) {
+        const { startScroll, endScroll } = propsRef.current;
         stopInertiaLoop();
         velocityRef.current = 0;
         const clampedTarget = Math.min(Math.max(target, startScroll), endScroll);
@@ -340,22 +350,24 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                 }}
                 onMouseMove={(e) => {
                     e.preventDefault();
-                    if (isRotating) {
+                    if (isRotatingRef.current) {
                         handleRotation(e);
                     }
                 }}
                 onTouchMove={(e) => {
-                    e.preventDefault();
-                    if (isRotating) {
+                    // React's touch listeners are passive, so preventDefault can't stop the page panning: touch-action below does
+                    if (isRotatingRef.current) {
                         handleRotation(e);
                     }
                 }}
+                ref={wheelRef}
                 style={{
                     boxShadow: "0px 0px 30px 0px rgba(0, 0, 0, 0.6)",
                     bottom: "0",
                     left: "50%",
                     transformOrigin: "center",
-                    transform: `translateX(-50%) translateY(calc(50% + 3px)) rotate(${clampedRotation.toFixed(2)}deg)`,
+                    transform: wheelTransform(clampedRotation),
+                    touchAction: "none",
                     // One background instead of a clipped red child: two separately
                     // anti-aliased round edges let the grey bleed through as light pixels.
                     // color-mix(srgb, 70%) is exactly the old red-700/70 over neutral-300.

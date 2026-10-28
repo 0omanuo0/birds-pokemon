@@ -44,14 +44,16 @@ async function ebirdSpeciesCode(scientificName: string): Promise<string | null> 
 
 // Everyone else's (eBird's) recent sightings of this species near a point — separate from our own
 // users' sightings in the DB. dist is a radius in km (eBird caps it at 50), back is days (capped at 30).
+// code = the species' eBird code when the caller has it (birds.ebird_code, matched by scripts/match-birds.mjs);
+// only birds without one fall back to the whole-taxonomy lookup.
 export async function ebirdRecentNearby(
     scientificName: string,
     lat: number,
     lng: number,
-    { dist = 25, back = 14 } = {}
+    { dist = 25, back = 14, code }: { dist?: number; back?: number; code?: string | null } = {}
 ): Promise<EbirdSighting[]> {
     try {
-        const speciesCode = await ebirdSpeciesCode(scientificName);
+        const speciesCode = code || await ebirdSpeciesCode(scientificName);
         if (!speciesCode) return [];
 
         const url = `${EBIRD_API}/data/obs/geo/recent/${speciesCode}?lat=${lat}&lng=${lng}&dist=${dist}&back=${back}`;

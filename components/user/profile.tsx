@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import LateralLeft from "@/components/nav/lateralLeft";
@@ -28,18 +28,22 @@ const ICONS: Record<StampId, { rows: string[]; color: string }> = {
     old: { color: "text-emerald-600", rows: ["#.####.#", "########", "#......#", "#.#.#.##", "#......#", "#.#.#.##", "#......#", "########"] },
 };
 
-function StampIcon({ id }: { id: StampId }) {
+// each icon as one path, built once (it was a rect per pixel, re-created on every selection change)
+const ICON_PATHS = Object.fromEntries(Object.entries(ICONS).map(([id, { rows }]) => [
+    id,
+    rows.flatMap((row, y) => [...row].map((cell, x) => cell === "#" ? `M${x} ${y}h1v1h-1z` : "")).join(""),
+])) as Record<StampId, string>;
+
+const StampIcon = memo(function StampIcon({ id }: { id: StampId }) {
     return (
         <svg viewBox="0 0 8 8" shapeRendering="crispEdges" fill="currentColor" className="h-8 w-8" aria-hidden>
-            {ICONS[id].rows.flatMap((row, y) =>
-                [...row].map((cell, x) => cell === "#" ? <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" /> : null)
-            )}
+            <path d={ICON_PATHS[id]} />
         </svg>
     );
-}
+});
 
 // block bar, same idea as the pixel-art progress in the concept: slots filling up, never a score
-function Blocks({ value, total, blocks, className = "" }: { value: number; total: number; blocks: number; className?: string }) {
+const Blocks = memo(function Blocks({ value, total, blocks, className = "" }: { value: number; total: number; blocks: number; className?: string }) {
     const filled = value <= 0 || total <= 0 ? 0 : Math.min(blocks, Math.max(1, Math.round((value / total) * blocks)));
     return (
         <div className={`flex gap-[2px] ${className}`} role="img" aria-label={`${value} of ${total}`}>
@@ -48,7 +52,7 @@ function Blocks({ value, total, blocks, className = "" }: { value: number; total
             ))}
         </div>
     );
-}
+});
 
 function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
     return (

@@ -1,5 +1,29 @@
 
 import { neon } from "@neondatabase/serverless";
+import { unstable_cache } from "next/cache";
+import type { Bird } from "@/lib/types";
+
+// The dex's species list, for the Pokédex page. The ~600 rows are the same for every user and change about never,
+// so they're cached for an hour instead of fetched (with every column, fun facts included) on each visit.
+export const dexBirds = unstable_cache(
+    async (): Promise<Bird[]> => {
+        const sql = neon(process.env.DATABASE_URL || "");
+        const rows = await sql`SELECT bird_id, common_name, scientific_name, family, na, ca, pb, name_en, seo_notes FROM birds ORDER BY bird_id;`;
+        return rows.map((bird: any) => ({
+            id: bird.bird_id,
+            name: bird.common_name.normalize('NFD').replace(/[̀-ͯ]/g, ''),
+            scientificName: bird.scientific_name,
+            family: bird.family,
+            na: bird.na,
+            ca: bird.ca,
+            pb: bird.pb,
+            nameEn: bird.name_en,
+            rare: /\bR[12]\b/.test(bird.seo_notes ?? ''),
+        }));
+    },
+    ["dex-birds-v1"],
+    { revalidate: 60 * 60 }
+);
 
 export type SightingStamp = { name: string; seenAt: number }; // seenAt: unix seconds
 export type HeatmapCell = { lat: number; lng: number; count: number; latest: SightingStamp[] };
@@ -74,7 +98,7 @@ export async function fetchBirdData(birdName: string) {
     // our list, so it reports Ichthyaetus audouinii where we store Larus audouinii. The English
     // common name is the one thing both sides agree on for those ~20 renamed species.
     const birds_data_raw = await sql`
-        SELECT * FROM birds
+        SELECT bird_id, common_name, scientific_name, family, subspecies, name_en, name_es, pb, na, ca, seo_notes FROM birds
         WHERE common_name = ${birdName} OR scientific_name = ${birdName} OR name_en = ${birdName}
         LIMIT 1;`;
     if (birds_data_raw.length === 0) {
@@ -97,12 +121,15 @@ export async function fetchBirdData(birdName: string) {
     return bird;
 }
 
-// fetch by id
+// fetch by id; null for an unknown or malformed id (it used to throw, so /bird/<bad id> was a 500)
 export async function fetchBirdById(birdId: string) {
+    if (!/^\d+$/.test(birdId)) return null;
     const sql = neon(process.env.DATABASE_URL || "");
-    const birds_data_raw = await sql`SELECT * FROM birds WHERE bird_id = ${birdId} LIMIT 1;`;
-    if (birds_data_raw.length === 0) {
-    }
+    // named columns: SELECT * also dragged the fun facts jsonb along on every bird page view
+    const birds_data_raw = await sql`
+        SELECT bird_id, common_name, scientific_name, family, subspecies, name_en, name_es, pb, na, ca, seo_notes, ebird_code
+        FROM birds WHERE bird_id = ${birdId} LIMIT 1;`;
+    if (birds_data_raw.length === 0) return null;
     const bird_data = birds_data_raw[0];
     const bird = {
         id: bird_data.bird_id,
@@ -116,6 +143,7 @@ export async function fetchBirdById(birdId: string) {
         na: bird_data.na,
         ca: bird_data.ca,
         seo_notes: bird_data.seo_notes,
+        ebirdCode: bird_data.ebird_code as string | null,
     };
     return bird;
 }
@@ -137,7 +165,6 @@ export async function sightingsByUserEmail(email: string, birdId: string) {
 }
 
 export async function sightingsByUserId(userId: string, birdId: string) {
-    console.log("Fetching sightings for user:", userId, "and bird:", birdId);
     const sql = neon(process.env.DATABASE_URL || "");
     const sightings = await sql`SELECT *, EXTRACT(EPOCH FROM seen_at) AS seen_at_unix FROM sightings WHERE user_id = ${userId} and bird_id = ${birdId} ORDER BY seen_at DESC;`;
     // Map seen_at_unix to a number and optionally remove the original seen_at if not needed
