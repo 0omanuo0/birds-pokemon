@@ -5,15 +5,20 @@ import { imageSvg, userSvg } from '../imageSvg';
 
 
 
+// what the camera is doing, so the preview can show a placeholder instead of a blank video
+export type CameraStatus = 'starting' | 'denied' | 'unsupported' | 'error' | 'off';
+
 export default function CameraSelector({
     videoRef,
     streamRef,
     active = true,
+    onStatus,
 }: {
     videoRef: React.RefObject<HTMLVideoElement | null>;
     streamRef: React.RefObject<MediaStream | null>;
     // false releases the camera (tracks stopped, sensor off); true starts it again
     active?: boolean;
+    onStatus?: (status: CameraStatus) => void;
 }) {
     const [selectedId, setSelectedId] = useState<string>('');
     const [options, setOptions] = useState<
@@ -34,12 +39,14 @@ export default function CameraSelector({
                 console.error(
                     'Camera API only works in secure contexts (HTTPS or localhost).'
                 );
+                onStatus?.('unsupported');
                 return;
             }
 
             const getUserMedia = getGetUserMedia();
             if (!getUserMedia) {
                 console.error('No getUserMedia implementation found.');
+                onStatus?.('unsupported');
                 return;
             }
 
@@ -49,6 +56,8 @@ export default function CameraSelector({
                 streamRef.current = pre;
             } catch (err) {
                 console.warn('User denied camera or error on initial access', err);
+                const name = (err as DOMException | undefined)?.name;
+                onStatus?.(name === 'NotAllowedError' || name === 'SecurityError' ? 'denied' : 'error');
                 // we can still try enumerateDevices, but labels might be empty
             }
 
@@ -80,10 +89,13 @@ export default function CameraSelector({
                 if (savedId && opts.some((o) => o.id === savedId)) {
                     setSelectedId(savedId);
                 } else {
-                    // Fallback to first available camera
-                    setSelectedId(opts[1].id);
+                    // Fallback to the second camera (the back one on phones), or the only one there is
+                    setSelectedId((opts[1] ?? opts[0]).id);
                 }
 
+            } else if (streamRef.current && videoRef.current) {
+                // no usable device ids: just show the stream from the permission prompt
+                videoRef.current.srcObject = streamRef.current;
             }
         };
 
@@ -103,6 +115,7 @@ export default function CameraSelector({
             if (videoRef.current) {
                 videoRef.current.srcObject = null;
             }
+            onStatus?.('off');
             return;
         }
 
@@ -120,6 +133,7 @@ export default function CameraSelector({
             const opt = options.find((o) => o.id === selectedId);
             if (!opt) return;
 
+            onStatus?.('starting');
             const constraints: MediaStreamConstraints = {
                 video: {
                     ...(opt.isFacing
@@ -142,6 +156,9 @@ export default function CameraSelector({
                 }
             } catch (err) {
                 console.error('Error starting camera:', err);
+                if (isActive) {
+                    onStatus?.((err as DOMException | undefined)?.name === 'NotAllowedError' ? 'denied' : 'error');
+                }
             }
         }
 
