@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import Noise from "@/components/turbulenceNoise";
+import { DeviceProvider } from "./deviceContext";
+import ScreenCover from "./screenCover";
 
 type ScreenSize = "standard" | "tall";
 
@@ -19,7 +21,7 @@ const BEZEL_HEIGHT: Record<ScreenSize, string> = {
 };
 
 function sizeFor(pathname: string): ScreenSize | null {
-    if (pathname === "/" || pathname === "/identify" || pathname === "/identify-sound"  || pathname === "/add") return "standard";
+    if (pathname === "/" || pathname === "/pokedex" || pathname === "/identify" || pathname === "/identify-sound"  || pathname === "/add") return "standard";
     if (pathname.startsWith("/bird/") || pathname === "/user") return "tall";
     return null;
 }
@@ -34,6 +36,7 @@ export default function DeviceShell({ children }: { children: ReactNode }) {
     if (!size) return <>{children}</>;
 
     return (
+        <DeviceProvider>
         <div
             className="h-[100dvh] md:py-4 2xl:py-8 w-full 2xl:flex 2xl:items-center"
             style={{ backgroundImage: "linear-gradient(45deg,#000 10%, #333 60%)" }}
@@ -56,8 +59,10 @@ export default function DeviceShell({ children }: { children: ReactNode }) {
                         </nav>
                     </div>
                     {children}
+                    <ScreenCover className={BEZEL_HEIGHT[size]} />
                 </main>
             </div>
         </div>
+        </DeviceProvider>
     );
 }
