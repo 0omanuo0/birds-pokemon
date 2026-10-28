@@ -48,3 +48,10 @@ certificates
 
 # design reference mockups, not part of the app
 /public/mockups/
+
+# data tooling, not part of the app: DB migrations, one-off scripts (mosaic atlas, species matching,
+# area seeding, fun-fact generator) and everything they download or export
+/migrations/
+/scripts/
+.cache/
+/docs/fun-facts-review.md
