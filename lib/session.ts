@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getServerSession, Session } from "next-auth";
 import { headers } from "next/headers";
 
@@ -17,7 +18,8 @@ export async function defaultUserEmail(): Promise<string | null> {
     return userAgent.includes(APP_USER_AGENT_MARKER) ? email : null;
 }
 
-export async function getSessionOrDevBypass(): Promise<Session | null> {
+// cache(): the root layout and the page both ask during one render; the session is decoded once per request.
+export const getSessionOrDevBypass = cache(async function getSessionOrDevBypass(): Promise<Session | null> {
     const session = await getServerSession();
     if (session?.user?.email) return session;
 
@@ -34,4 +36,4 @@ export async function getSessionOrDevBypass(): Promise<Session | null> {
         return { user: { email, name: "Dev bypass" }, expires: "" };
     }
     return session;
-}
+});

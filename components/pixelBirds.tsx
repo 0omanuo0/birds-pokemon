@@ -2513,15 +2513,18 @@ type Props = {
     title?: string;
 };
 
-export function PixelBird({
-    family, group, design = 0, colors, silhouette, blink, flip, className, title,
-}: Props) {
-    const designs = PIXEL_BIRDS[pixelBirdGroup(group ?? family ?? FALLBACK_GROUP)];
-    const d = (typeof design === "number" ? designs[design] : designs.find(x => x.id === design)) ?? designs[0];
-    const base = fillPalette(colors ?? d.colors);
-    const sil = silhouette ? (typeof silhouette === "string" ? silhouette : SIL) : null;
-    const eye = blink ? base[0] : lum(base[0]) < 90 ? "#ffffff" : "#111111";
+// One path per colour instead of one rect per run of pixels: a sprite is ~8 nodes instead of ~80, which matters
+// with hundreds of them on screen. The same design + palette + state always gives the same shapes, so they are
+// built once per combination.
+const shapesCache = new Map<string, [string, string][]>();
 
+function spriteShapes(groupName: string, d: PixelBirdDesign, colors: PixelPalette | undefined, sil: string | null, blink: boolean): [string, string][] {
+    const key = `${groupName}|${d.id}|${colors?.join(",") ?? ""}|${sil ?? ""}|${blink ? 1 : 0}`;
+    const hit = shapesCache.get(key);
+    if (hit) return hit;
+
+    const base = fillPalette(colors ?? d.colors);
+    const eye = blink ? base[0] : lum(base[0]) < 90 ? "#ffffff" : "#111111";
     const fillOf = (ch: string): string => {
         if (sil) return sil;
         if (ch === "~") return WATER;
@@ -2533,7 +2536,7 @@ export function PixelBird({
         return SHADE[ch] ? shade(c, SHADE[ch]) : c;
     };
 
-    const rects: React.ReactNode[] = [];
+    const paths = new Map<string, string>();
     d.grid.forEach((row, y) => {
         let x = 0;
         while (x < row.length) {
@@ -2541,10 +2544,24 @@ export function PixelBird({
             if (ch === ".") { x++; continue; }
             let e = x;
             while (e < row.length && row[e] === ch) e++;
-            rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={e - x} height={1} fill={fillOf(ch)} />);
+            const fill = fillOf(ch);
+            paths.set(fill, (paths.get(fill) ?? "") + `M${x} ${y}h${e - x}v1h-${e - x}z`);
             x = e;
         }
     });
+    const shapes = [...paths];
+    shapesCache.set(key, shapes);
+    return shapes;
+}
+
+export function PixelBird({
+    family, group, design = 0, colors, silhouette, blink, flip, className, title,
+}: Props) {
+    const groupName = pixelBirdGroup(group ?? family ?? FALLBACK_GROUP);
+    const designs = PIXEL_BIRDS[groupName];
+    const d = (typeof design === "number" ? designs[design] : designs.find(x => x.id === design)) ?? designs[0];
+    const sil = silhouette ? (typeof silhouette === "string" ? silhouette : SIL) : null;
+    const shapes = spriteShapes(groupName, d, colors, sil, !!blink);
 
     return (
         <svg
@@ -2558,7 +2575,7 @@ export function PixelBird({
             aria-label={title}
             aria-hidden={title ? undefined : true}
         >
-            {rects}
+            {shapes.map(([fill, path]) => <path key={fill} d={path} fill={fill} />)}
         </svg>
     );
 }

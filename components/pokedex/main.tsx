@@ -3,19 +3,16 @@
 import Content from "./content";
 import PokeballRotation, { PokeballRotationHandle } from "@/components/pokeballRotation";
 import { Bird } from "@/lib/types";
-import { useEffect, useRef, useState } from "react";
-import ContextMenu from "../contextMenu";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import LateralLeft from "../nav/lateralLeft";
 import LateralRight from "../nav/lateralRight";
-import { addSvg, CameraSvg, homeSvg, searchSvg, userSvg } from "../imageSvg";
+import { CameraSvg, homeSvg, searchSvg } from "../imageSvg";
 import Dialog from "./dialog";
 import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
 import { useRouter } from "next/navigation";
 import type { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
 import { loadBirdDescription } from "@/lib/birdDescription";
 
-import { signIn, signOut, useSession } from "next-auth/react";
-import { useUser } from "../userContext";
 import { DeviceHintsSetter } from "@/components/device/deviceContext";
 
 export default function Main({ birds_default, birds_seen }: { birds_default: Bird[], birds_seen: any[] }) {
@@ -26,16 +23,16 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
 
     const [selectedBird, setSelectedBird] = useState<Bird>(birds_default[0]);
 
+    const seenIds = useMemo(() => new Set(birds_seen.map(s => s.bird_id)), [birds_seen]);
 
     const [isFiltered, setIsFiltered] = useState(false);
     const [birdsFiltered, setBirdsFiltered] = useState(birds_default);
-    const [known_bird, setKnownBird] = useState<boolean[]>([]);
+    // the list opens in All mode, where a bird is known once you've seen it (this used to start empty, so every
+    // bird showed as ??? and couldn't be opened until the first toggle)
+    const [known_bird, setKnownBird] = useState<boolean[]>(() => birds_default.map(b => seenIds.has(b.id)));
 
     const [showDialogSearch, setShowDialogSearch] = useState(false);
-
-    const [isFirstSpin, setIsFirstSpin] = useState(true);
-
-    const user = useUser();
+    const closeDialog = useCallback(() => setShowDialogSearch(false), []);
 
     const pokeballRef = useRef<PokeballRotationHandle | null>(null);
     // Set right before swapping birdsFiltered (e.g. toggling All/Filtered) to the
@@ -53,16 +50,7 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
         }
         setSelectedBird(birdsFiltered[nextIndex]);
         pokeballRef.current?.rotateTo(nextIndex * degrees_per_item);
-        console.log(birdsFiltered, "birdsFiltered", birdsFiltered.length);
     }, [birdsFiltered, known_bird]);
-
-
-
-    useEffect(() => {
-        if (user === null) {
-            router.push("/api/auth/signin");
-        }
-    }, [user, router]);
 
     // Once a bird stays selected for PREFETCH_DELAY_MS, get its page ready before the long-press:
     // the full page data and its Wikipedia description. Only for seen birds, the only ones that can be opened.
@@ -81,27 +69,6 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
         return () => clearTimeout(timer);
     }, [selectedBird, selectedKnown, router]);
 
-    useEffect(() => {
-        if (isFirstSpin) {
-            setIsFirstSpin(false);
-            return;
-        }
-
-        // play a sound
-        // const audioPath = "/audio/SFX_SLOTS_NEW_SPIN.wav";
-        // const audio_ = new Audio(audioPath);
-        // audio_.volume = 0.01;
-        // audio_.loop = false;
-        // audio_.play().catch(err => {
-        //     console.error("Error playing sound:", err);
-        // });
-
-    }, [selectedBird, router]);
-
-
-    //get buho real in the known birds
-
-
     // frame, bezel and screen height live in DeviceShell (root layout); this only fills the two cells
     return (
         <>
@@ -110,7 +77,7 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
                     birds_default={birds_default} setBirdsFiltered={setBirdsFiltered}
                     setKnownBird={setKnownBird} birds_seen={birds_seen}
                     showDialogSearch={showDialogSearch} setShowDialogSearch={setShowDialogSearch}
-                    onClose={() => setShowDialogSearch(false)}
+                    onClose={closeDialog}
                 />
                 <Content
                     birds={birdsFiltered} birdsSeen={birds_seen}
@@ -154,11 +121,7 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
                                 // → going _back_ to un-filtered mode
                                 setBirdsFiltered(birds_default);
                                 // mark each bird “known” if it ever appears in birds_seen
-                                setKnownBird(
-                                    birds_default.map(b =>
-                                        birds_seen.some(bs => bs.bird_id === b.id)
-                                    )
-                                );
+                                setKnownBird(birds_default.map(b => seenIds.has(b.id)));
                             } else {
                                 // → going _into_ filtered mode: only show birds you've seen,
                                 //    and for each id pick the *last* record from birds_seen
@@ -183,8 +146,6 @@ export default function Main({ birds_default, birds_seen }: { birds_default: Bir
                                             bird_id: b.id,
                                         };
                                     });
-
-                                console.log("Filtered birds:", filtered);
 
                                 setBirdsFiltered(filtered);
                                 // all of the filtered list are “known”

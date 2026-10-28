@@ -1,7 +1,7 @@
 "use client";
 
 import { Bird } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import BirdCardScroll from "./birdCardScroll";
 import BirdCard from "./birdCard";
 import HeadCard from "./headCard";
@@ -15,6 +15,11 @@ const ROW_PITCH = 32 + 8;
 // at MAX. The old cos(d / 2.4) curve kept oscillating, so far rows swung back out to 120px.
 const MAX_INDENT = 90;
 const INDENT_SPREAD = 4; // rows away from the selection before the indent maxes out
+
+// Only the rows around the selection are mounted (the list is 600 birds); the selection sits on the 4th slot,
+// so a few above and a screenful below cover even the tall layout.
+const ROWS_ABOVE = 8;
+const ROWS_BELOW = 20;
 function rowIndent(distance: number) {
     const t = Math.min(Math.abs(distance) / INDENT_SPREAD, 1);
     return Math.round(MAX_INDENT * (1 - Math.cos(t * Math.PI / 2)));
@@ -24,7 +29,22 @@ export default function Content(
     { birds, birdsSeen, setSelectedBird, selectedBird, known_bird, isFiltered }:
         { birds: Bird[], birdsSeen: any[], setSelectedBird: (bird: Bird) => void, selectedBird: Bird, known_bird: boolean[], isFiltered: boolean }
 ) {
-    const [selectedBirdSeenD, setSelectedBirdSeenD] = useState<any | undefined>({});
+    // each bird's latest sighting (highest sighting_id), looked up instead of filtering every sighting per selection
+    const latestSighting = useMemo(() => {
+        const latest = new Map<number, any>();
+        for (const s of birdsSeen) {
+            const prev = latest.get(s.bird_id);
+            if (!prev || s.sighting_id > prev.sighting_id) latest.set(s.bird_id, s);
+        }
+        return latest;
+    }, [birdsSeen]);
+
+    // filtered-mode birds carry bird_id (their id is re-indexed); All-mode birds only have id
+    const selectedBirdSeenD = selectedBird ? latestSighting.get((selectedBird as any).bird_id ?? selectedBird.id) : undefined;
+    const headBird = useMemo(
+        () => (selectedBird ? { ...selectedBird, ...selectedBirdSeenD } : undefined),
+        [selectedBird, selectedBirdSeenD]
+    );
 
     // Position in the list, not bird.id: ids are DB ids in All mode, 1-based in the seen-only
     // list and 0-based in search results, so only the index is consistent across all three.
@@ -45,31 +65,12 @@ export default function Content(
         return () => clearTimeout(timer);
     }, [selectedIndex, birds, known_bird]);
 
-    useEffect(() => {
-        if (!selectedBird) return;
-
-
-        // filtered-mode birds carry bird_id (their id is re-indexed); All-mode birds only have id
-        const birdId = (selectedBird as any).bird_id ?? selectedBird.id;
-        // collect all sightings of this bird…
-        const sightings = birdsSeen
-            .filter(b => b.bird_id === birdId)
-            .sort((a, b) => a.sighting_id - b.sighting_id);
-        if (sightings.length > 0) {
-            // …and pick the last one
-            setSelectedBirdSeenD(sightings[sightings.length - 1]);
-        } else {
-            setSelectedBirdSeenD(undefined);
-        }
-        
-
-    }, [selectedBird, birdsSeen, birds]);
-
-
+    const firstRow = Math.max(0, selectedIndex - ROWS_ABOVE);
+    const lastRow = Math.min(birds.length, Math.max(selectedIndex, 0) + ROWS_BELOW);
 
     return (
         <>
-            <HeadCard selectedBird={selectedBird ? { ...selectedBird, ...selectedBirdSeenD } : undefined} known_bird={selectedKnown} />
+            <HeadCard selectedBird={headBird} known_bird={selectedKnown} />
 
             <div className="flex flex-row w-full min-h-0 flex-1 relative">
                 <BirdCard
@@ -90,19 +91,24 @@ export default function Content(
                         style={{
                             // selected row parked on the 4th slot (index 3), same spot as before
                             transform: `translateY(${(3 - Math.max(selectedIndex, 0)) * ROW_PITCH}px)`,
+                            // the unmounted rows above keep their space, so row i still sits at i * ROW_PITCH
+                            paddingTop: firstRow * ROW_PITCH,
                         }}
                         className="flex flex-col gap-[8px] transition-transform duration-100 ease-in-out pb-96"
                     >
-                        {birds.map((bird, index) => (
-                            <BirdCardScroll
-                                key={bird.id.toString()}
-                                bird={bird}
-                                setSelectedBird={setSelectedBird}
-                                known={!!known_bird[index]}
-                                selected={index === selectedIndex}
-                                indent={rowIndent(index - selectedIndex)}
-                            />
-                        ))}
+                        {birds.slice(firstRow, lastRow).map((bird, i) => {
+                            const index = firstRow + i;
+                            return (
+                                <BirdCardScroll
+                                    key={bird.id.toString()}
+                                    bird={bird}
+                                    setSelectedBird={setSelectedBird}
+                                    known={!!known_bird[index]}
+                                    selected={index === selectedIndex}
+                                    indent={rowIndent(index - selectedIndex)}
+                                />
+                            );
+                        })}
                     </ul>
                 </div>
                 }

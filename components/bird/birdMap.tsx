@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Map as LeafletMap } from "leaflet";
 import type { BirdHeatmap } from "@/lib/data";
 import type { EbirdSighting } from "@/lib/ebird";
 import LateralLeft from "@/components/nav/lateralLeft";
 import LateralRight from "@/components/nav/lateralRight";
-import PokeballRotation from "@/components/pokeballRotation";
+import PokeballRotation, { PokeballRotationHandle } from "@/components/pokeballRotation";
 import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
 import { DeviceHintsSetter } from "@/components/device/deviceContext";
 import { arrowBoxLeftSvg, homeSvg } from "@/components/imageSvg";
@@ -22,6 +22,18 @@ const SightingsHeatmap = dynamic(() => import("./sightingsHeatmap"), {
         </div>
     ),
 });
+
+// The pokeball wheel zooms the map continuously (no detents, so it spins and coasts freely): 36° per zoom level,
+// in quarter-level steps (the map's zoomSnap). Zoom limits match sightingsHeatmap (minZoom / MAX_ZOOM / zoomSnap).
+const MIN_ZOOM = 3;
+const MAX_ZOOM = 17;
+const ZOOM_SNAP = 0.25;
+const DEGREES_PER_ZOOM = 36;
+// the wheel has to be still this long before the map really zooms
+const ZOOM_SETTLE_MS = 180;
+// the CSS preview covers at most this many zoom levels away from the real zoom (scale 1/4 .. 4)
+const MAX_PREVIEW_LEVELS = 2;
+const zoomToRotation = (zoom: number) => (zoom - MIN_ZOOM) * DEGREES_PER_ZOOM;
 
 // Every user's sightings of one bird: bubbles on the map, latest observers underneath.
 export default function BirdMap({ bird, heatmap, ebirdSightings: initialEbirdSightings }: {
@@ -80,6 +92,75 @@ export default function BirdMap({ bird, heatmap, ebirdSightings: initialEbirdSig
         };
     }, [map, bird.id]);
 
+    // Wheel <-> map zoom. The wheel drives the map through onWheel; the map drives the wheel back when it zooms
+    // some other way (+/- buttons, pinch, a bubble tap, FIT). lastWheelZoom stops the second from fighting the
+    // first: a zoom the wheel just asked for must not re-set the wheel, which would cut its spin short.
+    const wheelRef = useRef<PokeballRotationHandle | null>(null);
+    const mapRef = useRef<LeafletMap | null>(null);
+    const lastWheelZoom = useRef<number | null>(null);
+    mapRef.current = map;
+
+    // While the wheel spins the map is only scaled with CSS (cheap); the real zoom (tiles, bubbles, eBird refetch)
+    // is applied once the wheel has been still for ZOOM_SETTLE_MS, or when the preview has strayed too far.
+    const scaleRef = useRef<HTMLDivElement>(null);
+    const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingZoom = useRef<number | null>(null);
+
+    function clearPreview() {
+        if (settleTimer.current) clearTimeout(settleTimer.current);
+        settleTimer.current = null;
+        pendingZoom.current = null;
+        const el = scaleRef.current;
+        if (el) {
+            el.style.transform = "";
+            delete el.dataset.zooming;
+        }
+    }
+
+    function commitZoom(zoom: number) {
+        clearPreview();
+        const target = mapRef.current;
+        if (target && target.getZoom() !== zoom) target.setZoom(zoom, { animate: false });
+    }
+
+    function onWheelZoom(rotation: number) {
+        const zoom = MIN_ZOOM + Math.round(rotation / DEGREES_PER_ZOOM / ZOOM_SNAP) * ZOOM_SNAP;
+        if (zoom === lastWheelZoom.current) return;
+        lastWheelZoom.current = zoom;
+        const target = mapRef.current;
+        const el = scaleRef.current;
+        if (!target || !el) return;
+
+        const delta = zoom - target.getZoom();
+        // a long spin: apply what we have so the scale preview never gets huge or tiny
+        if (Math.abs(delta) > MAX_PREVIEW_LEVELS) {
+            commitZoom(zoom);
+            return;
+        }
+        pendingZoom.current = zoom;
+        el.dataset.zooming = "1";
+        el.style.transform = `scale(${2 ** delta})`;
+        if (settleTimer.current) clearTimeout(settleTimer.current);
+        settleTimer.current = setTimeout(() => commitZoom(zoom), ZOOM_SETTLE_MS);
+    }
+
+    useEffect(() => () => { if (settleTimer.current) clearTimeout(settleTimer.current); }, []);
+
+    useEffect(() => {
+        if (!map) return;
+        const syncWheel = () => {
+            const zoom = map.getZoom();
+            if (zoom === lastWheelZoom.current) return;
+            // zoomed some other way: drop any half-finished wheel preview
+            clearPreview();
+            lastWheelZoom.current = zoom;
+            wheelRef.current?.rotateTo(zoomToRotation(zoom));
+        };
+        syncWheel(); // the map starts at its own zoom, not at the wheel's 0
+        map.on("zoomend", syncWheel);
+        return () => { map.off("zoomend", syncWheel); };
+    }, [map]);
+
     function fitAll() {
         const points: [number, number][] = [
             ...heatmap.cells.map(c => [c.lat, c.lng] as [number, number]),
@@ -114,7 +195,10 @@ export default function BirdMap({ bird, heatmap, ebirdSightings: initialEbirdSig
                 <div className="relative isolate mx-3 mt-3 min-h-0 flex-1 overflow-hidden pixel-corners-4 bg-neutral-900">
                     {heatmap.cells.length > 0 || ebirdSightings.length > 0 ? (
                         <>
-                            <SightingsHeatmap cells={heatmap.cells} ebirdSightings={ebirdSightings} onReady={setMap} />
+                            {/* scaled while the wheel spins; the map's own controls hide meanwhile so they don't grow with it */}
+                            <div ref={scaleRef} className="h-full w-full will-change-transform [&[data-zooming]_.leaflet-control-container]:invisible">
+                                <SightingsHeatmap cells={heatmap.cells} ebirdSightings={ebirdSightings} onReady={setMap} />
+                            </div>
                             <div className="pointer-events-none absolute bottom-1 left-1 z-[1000] flex flex-col gap-1 bg-neutral-900/80 px-1.5 py-1 font-pokemon text-[10px] uppercase text-neutral-300">
                                 <div className="flex items-center gap-1.5">
                                     Few
@@ -172,9 +256,15 @@ export default function BirdMap({ bird, heatmap, ebirdSightings: initialEbirdSig
             <DeviceControls>
                 <LateralLeft target={`/bird/${bird.id}`} label="Back">{arrowBoxLeftSvg}</LateralLeft>
                 <LateralRight target="/" label="Home">{homeSvg}</LateralRight>
-                {/* press: frame every sighting again */}
+                {/* spin: zoom; press: frame every sighting again */}
                 <DeviceHintsSetter press="FIT" />
-                <PokeballRotation startScroll={0} endScroll={0} onPress={fitAll} />
+                <PokeballRotation
+                    ref={wheelRef}
+                    startScroll={0}
+                    endScroll={zoomToRotation(MAX_ZOOM)}
+                    onWheel={onWheelZoom}
+                    onPress={fitAll}
+                />
             </DeviceControls>
         </>
     );

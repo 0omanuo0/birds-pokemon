@@ -21,6 +21,6 @@ export async function GET(req: Request) {
     const bird = await fetchBirdById(birdId);
     if (!bird) return Response.json({ error: "Bird not found" }, { status: 404 });
 
-    const sightings = await ebirdRecentNearby(bird.scientificName, lat, lng, { dist, back: 14 });
+    const sightings = await ebirdRecentNearby(bird.scientificName, lat, lng, { dist, back: 14, code: bird.ebirdCode });
     return Response.json({ sightings }, { headers: { "Cache-Control": "private, max-age=60" } });
 }

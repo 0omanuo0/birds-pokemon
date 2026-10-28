@@ -42,6 +42,19 @@
   background: #525252;
 }
 
+/* sightings map: the tile credit as a tiny dim line instead of Leaflet's big white box */
+.leaflet-container .leaflet-control-attribution {
+  background: transparent;
+  color: #737373;
+  font-size: 8px;
+  line-height: 1;
+  padding: 0 3px 2px;
+}
+
+.leaflet-container .leaflet-control-attribution a {
+  color: #737373;
+}
+
 /* DeviceScreen: page content eases in while the shell's screen height animates */
 @keyframes device-screen-in {
   from {

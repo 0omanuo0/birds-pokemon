@@ -16,6 +16,7 @@ export default async function BirdMapPage({ params }: { params: Promise<{ id: st
     if (!Number.isInteger(birdId) || birdId <= 0) notFound();
 
     const [bird, heatmap] = await Promise.all([fetchBirdById(id), birdHeatmap(birdId)]);
+    if (!bird) notFound();
 
     // eBird's community sightings near where our own users have actually seen this bird, so the extra
     // layer is relevant to them instead of just centered on the whole country
@@ -28,7 +29,7 @@ export default async function BirdMapPage({ params }: { params: Promise<{ id: st
             ];
         })()
         : SPAIN_CENTER;
-    const ebirdSightings = await ebirdRecentNearby(bird.scientificName, centerLat, centerLng);
+    const ebirdSightings = await ebirdRecentNearby(bird.scientificName, centerLat, centerLng, { code: bird.ebirdCode });
 
     // frame, backdrop and bezel come from DeviceShell in the root layout
     return <BirdMap bird={{ id: bird.id, name: bird.name }} heatmap={heatmap} ebirdSightings={ebirdSightings} />;

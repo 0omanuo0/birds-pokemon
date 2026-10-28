@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { AttributionControl, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { HeatmapCell, SightingStamp } from "@/lib/data";
@@ -200,12 +200,25 @@ export default function SightingsHeatmap({ cells, ebirdSightings = [], onReady }
             zoom={6}
             minZoom={3}
             maxZoom={MAX_ZOOM}
+            // quarter-level zoom so the pokeball wheel (components/bird/birdMap.tsx) can zoom smoothly
+            zoomSnap={0.25}
             style={{ height: "100%", width: "100%", background: "#171717" }}
             scrollWheelZoom
+            attributionControl={false}
         >
+            {/* just the tile credit (required by Esri), without the "Leaflet" prefix and flag; sized by .dex-attribution */}
+            <AttributionControl prefix={false} position="bottomright" />
             <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                // keyless dark basemap; CARTO's dark_all started answering with an "API key required" watermark.
+                // Tiles stop at zoom 16, so past that Leaflet stretches them.
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+                maxNativeZoom={16}
+                attribution="Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ"
+            />
+            {/* the basemap has no place names; this transparent overlay adds them */}
+            <TileLayer
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+                maxNativeZoom={16}
             />
             <FitToCells cells={cells} ebirdSightings={ebirdSightings} />
             <MapReady onReady={onReady} />
