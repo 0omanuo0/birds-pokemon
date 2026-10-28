@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import BirdCardScroll from "./birdCardScroll";
 import BirdCard from "./birdCard";
 import HeadCard from "./headCard";
+import { loadReferencePhoto } from "@/lib/referencePhoto";
 
 // Row geometry in px (not rem), so the list stays aligned whatever the root font size is.
 // Must match BirdCardScroll: h-[32px] rows + gap-[8px] on the ul.
@@ -29,6 +30,20 @@ export default function Content(
     // list and 0-based in search results, so only the index is consistent across all three.
     const selectedIndex = selectedBird ? birds.findIndex(b => b.id === selectedBird.id) : -1;
     const selectedKnown = selectedIndex >= 0 && !!known_bird[selectedIndex];
+
+    // warm the reference photos of the met birds around the selection, so their card shows at once
+    // (birds not met yet come from the mosaic atlas and need nothing). Delayed a little so a fast spin
+    // through the list doesn't fire a request per row.
+    useEffect(() => {
+        if (selectedIndex < 0) return;
+        const timer = setTimeout(() => {
+            for (const d of [0, 1, -1, 2, -2, 3]) {
+                const sci = birds[selectedIndex + d]?.scientificName;
+                if (sci && known_bird[selectedIndex + d]) loadReferencePhoto(sci);
+            }
+        }, 150);
+        return () => clearTimeout(timer);
+    }, [selectedIndex, birds, known_bird]);
 
     useEffect(() => {
         if (!selectedBird) return;

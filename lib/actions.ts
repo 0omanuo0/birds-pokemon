@@ -34,6 +34,7 @@ export async function pushBird(
             VALUES (${userId}, ${birdId}, ${location}, ${img_url}, ${timestamp}::timestamptz);
         `;
         revalidatePath("/");
+        revalidatePath("/pokedex");
         revalidatePath(`/bird/${birdId}`);
         return { success: true };
     } catch (error) {
@@ -74,6 +75,7 @@ export async function deleteSighting(sightingId: number): Promise<ActionResult<{
         ` as { count: number }[];
 
         revalidatePath("/");
+        revalidatePath("/pokedex");
         revalidatePath(`/bird/${deleted.bird_id}`);
         return { success: true, remaining: count };
     } catch (error) {
