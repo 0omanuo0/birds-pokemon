@@ -4,11 +4,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CameraComponent from '@/components/identify/camera';
 import PokeballRotation from '@/components/pokeballRotation';
-import { homeSvg, ImageAddSvg, MicSvg, userSvg } from '@/components/imageSvg';
+import { burgerSvg, homeSvg, ImageAddSvg, MicSvg } from '@/components/imageSvg';
 import LateralRight from '@/components/nav/lateralRight';
 import LateralLeft from '@/components/nav/lateralLeft';
 import IdentifyResult from '@/components/identify/identifyResult';
 import DexNotice from '@/components/ui/dexNotice';
+import { DeviceHintsSetter } from '@/components/device/deviceContext';
 import DeviceScreen, { DeviceControls } from '@/components/device/deviceScreen';
 import { useUser } from '@/components/userContext';
 import { resizeToJpeg } from '@/lib/resizeImage';
@@ -171,13 +172,10 @@ export default function IdentifyPage() {
             </DeviceScreen>
             
             <DeviceControls>
-                <LateralLeft target='/user' label="User">{userSvg}</LateralLeft>
-                <LateralRight target='/' label="Home">{homeSvg}</LateralRight>
-                {/* same legend as Home, labelled for this page's pokeball: press identifies, spinning zooms */}
-                <div className="font-pokemon-ns text-lg text-neutral-400 flex gap-6 my-2 shrink-0">
-                    <span><span>◉</span>Press · <b className="text-amber-400">SCAN</b></span>
-                    <span><span>↻</span>Spin · <b className="text-amber-400">ZOOM</b></span>
-                </div>
+                <LateralLeft target='/' label="Home">{homeSvg}</LateralLeft>
+                <LateralRight target='/pokedex' label="Pokedex">{burgerSvg}</LateralRight>
+                {/* labelled for this page's pokeball: press identifies, spinning zooms, hold does nothing here */}
+                <DeviceHintsSetter press="Scan" hold={null} />
                 <PokeballRotation
                     onWheel={(e) => {
                         if (e < 0) return;

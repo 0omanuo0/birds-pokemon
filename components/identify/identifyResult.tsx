@@ -9,7 +9,7 @@ import { pushBird } from "@/lib/actions";
 import { loadBirdDescription, peekBirdDescription } from "@/lib/birdDescription";
 import { REGION_NAMES, regionAt, type RegionCode } from "@/lib/regions";
 import { ClockSvg, PinSvg } from "@/components/imageSvg";
-import { formatSeenDate } from "@/components/home/headCard";
+import { formatSeenDate } from "@/components/pokedex/headCard";
 import IucnScale from "@/components/bird/iucnScale";
 import DexNotice from "@/components/ui/dexNotice";
 import DateTimePicker from "./datetimePicker";

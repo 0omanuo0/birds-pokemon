@@ -25,6 +25,14 @@ export async function GET(req: Request) {
         );
     }
 
+    // numbers only: both go straight into the Nominatim URL
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) {
+        return new Response(
+            JSON.stringify({ message: 'Latitude and longitude must be numbers', status: 'error' }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+
     const cacheKey = `${lat},${lon}`;
     if (temp_Cache.has(cacheKey)) {
         return new Response(

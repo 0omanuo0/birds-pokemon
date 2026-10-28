@@ -11,6 +11,7 @@ import LateralRight from "@/components/nav/lateralRight";
 import PokeballRotation from "@/components/pokeballRotation";
 import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
 import DexNotice from "@/components/ui/dexNotice";
+import { DeviceHintsSetter } from "@/components/device/deviceContext";
 import Spectrogram from "@/components/identify/spectrogram";
 import BirdRow, { confidenceCell, confidenceTone } from "@/components/identify/birdRow";
 import { MODEL_BYTES_APPROX, useBirdListener, type ErrorKind } from "@/components/identify/useBirdListener";
@@ -181,13 +182,8 @@ export default function IdentifySound() {
             <DeviceControls>
                 <LateralLeft target="/" label="Home">{homeSvg}</LateralLeft>
                 <LateralRight onAction={listener.clear} label="Clear">{trashSvg}</LateralRight>
-                {/* same legend as the other device pages, labelled for this page's pokeball */}
-                <div className="font-pokemon-ns text-lg text-neutral-400 flex gap-6 my-2 shrink-0">
-                    <span>
-                        <span>◉</span>Press ·{" "}
-                        <b className="text-amber-400">{status === "listening" ? "STOP" : "REC"}</b>
-                    </span>
-                </div>
+                {/* labelled for this page's pokeball */}
+                <DeviceHintsSetter press={status === "listening" ? "Stop" : "Rec"} hold={null} />
                 <PokeballRotation
                     startScroll={0}
                     endScroll={0}

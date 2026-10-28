@@ -53,6 +53,95 @@
   }
 }
 
+/* ScreenCover: the closed Pokédex lid over the screen on first load (stepped seam, lens + LEDs in the raised corner,
+   yellow arrow, groove). Lid edges are 2px bevels like the pull tabs: light top edge, dark bottom edge. */
+/* moulded plastic, top layer first: grain, then falloff toward the bottom. Matte on purpose: no glare or sheen.
+   The grain is a tiny SVG noise tile; as a background image it's rasterized once, not per frame. */
+.screen-cover {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04), transparent 40%, rgba(0, 0, 0, 0.2)),
+    #b13a3f;
+  /* cast onto the controls below (the window lets it spill past the bezel), and onto the screen while it slides */
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* the lid's thickness: one light line where the face rolls over, then the dark underside */
+.screen-cover-lip {
+  background: linear-gradient(to bottom, #d65a60 0 2px, #8f2f33 2px 4px, #5e2427 4px);
+}
+
+/* the lens corner is moulded a little proud of the rest of the lid */
+.screen-cover-head {
+  clip-path: polygon(0 0, 38px 0, 38px 58%, 70px 70%, 70px 100%, 0 100%);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* engraved groove (vertical): dark cut with a faint lit lip, like the seam */
+.screen-cover-groove {
+  background: linear-gradient(to right, #5e2427 0 2px, rgba(255, 255, 255, 0.14) 2px 3px);
+}
+
+/* the light's well: pressed into the lid, shadowed on its upper wall, lit on the lower lip */
+.screen-cover-socket {
+  background: #2a2122;
+  box-shadow: inset 0 3px 4px rgba(0, 0, 0, 0.65), 0 0 0 2px #7a2d31, 0 1px 0 2px rgba(255, 255, 255, 0.14);
+}
+
+.screen-cover-led {
+  box-shadow: 0 0 0 1px #5e2427;
+}
+
+.screen-cover-arrow {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+/* breathing light: slow in, quick peak, long rest, like a sleeping laptop's LED (Apple's breathing-LED patent;
+   ~15 breaths a minute). Opacity only, so it stays cheap and runs before hydration. */
+.screen-cover-glow {
+  background: #38bdf8;
+  /* the glow is part of the same element, so it breathes with the disc and costs nothing extra */
+  box-shadow: 0 0 12px 3px rgba(56, 189, 248, 0.65);
+  opacity: 0.12;
+  animation: screen-cover-breathe 4s ease-in-out infinite;
+}
+
+@keyframes screen-cover-breathe {
+  0%, 100% { opacity: 0.12; }
+  30% { opacity: 0.3; }
+  50% { opacity: 1; }
+  70% { opacity: 0.3; }
+}
+
+/* ready: the light flashes on, the shutter drops a hair as it unlatches, then rolls up into the bezel */
+.screen-cover-open {
+  animation: screen-cover-lift 760ms cubic-bezier(0.55, 0, 0.25, 1) forwards;
+}
+
+.screen-cover-open .screen-cover-glow {
+  animation: screen-cover-flash 260ms ease-out forwards;
+}
+
+@keyframes screen-cover-flash {
+  0% { opacity: 0.4; }
+  40%, 100% { opacity: 1; }
+}
+
+@keyframes screen-cover-lift {
+  0%, 30% { transform: translateY(0); }
+  40% { transform: translateY(4px); }
+  100% { transform: translateY(-102%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-cover-glow { animation: none; opacity: 0.6; }
+  .screen-cover-open { animation: screen-cover-fade 300ms ease-out forwards; }
+  .screen-cover-open .screen-cover-glow { animation: none; opacity: 1; }
+}
+
+@keyframes screen-cover-fade {
+  to { opacity: 0; }
+}
 
 @font-face {
   font-family: 'PokemonBW2';
@@ -60,6 +149,36 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+}
+
+/* The layout's font sizes were tuned for PokemonBW (cap height 0.625em). DS (1.125em) and Classic (0.875em) are
+   much bigger at the same font-size, so the copies used in the stacks are scaled down with size-adjust to match
+   BW's cap height (0.625/1.125 = 56%, 0.625/0.875 = 71%; Classic is also very wide, so it goes a bit lower).
+   'PokemonBW2' itself stays unscaled: .font-pokemon-bw2 sets its own native pixel size. */
+@font-face {
+  font-family: 'PokemonClassic';
+  src: url('/fonts/Pokemon Classic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 64%;
+}
+
+@font-face {
+  font-family: 'PokemonDS';
+  src: url('/fonts/pokemon-ds-font.woff') format('woff'), url('/fonts/pokemon-ds-font.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 56%;
+}
+
+/* Font stacks: the pixel fonts cross each other as fallbacks (so a glyph one lacks comes from another), then a
+   smooth sans last. DS is the default (more readable); Classic is for the Today screen and the buddy's talk. */
+:root {
+  /* --font-geist-sans only exists on <body> (layout.tsx), so on :root it needs a literal fallback or the whole stack is invalid */
+  --font-pixel-ds: 'PokemonDS', 'PokemonClassic', 'PokemonBW', var(--font-geist-sans, system-ui), Arial, sans-serif;
+  --font-pixel-classic: 'PokemonClassic', 'PokemonDS', 'PokemonBW', var(--font-geist-sans, system-ui), Arial, sans-serif;
 }
 
 @font-face {
@@ -107,24 +226,84 @@ div {
   -webkit-user-select: none !important;
 }
 
+/* device cursor (components/device/cursor.tsx): the Dex list's 3x5 pixel arrow plus a yellow outline on the current stop */
+.stop {
+  position: relative;
+}
+
+.stop[data-cur="true"] {
+  outline: 2px solid #facc15;
+  outline-offset: 1px;
+}
+
+.stop[data-cur="true"]::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  width: 6px;
+  height: 10px;
+  margin-top: -5px;
+  background: #facc15;
+  clip-path: polygon(0 0, 33% 0, 33% 20%, 66% 20%, 66% 40%, 100% 40%, 100% 60%, 66% 60%, 66% 80%, 33% 80%, 33% 100%, 0 100%);
+  animation: stop-blink 0.9s steps(1) infinite;
+}
+
+@keyframes stop-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* loading dots: each hops in turn, in whole-pixel steps like a sprite */
+@keyframes dot-hop {
+  0%, 45%, 100% { transform: translateY(0); }
+  15% { transform: translateY(-6px); }
+  30% { transform: translateY(-3px); }
+}
+
+/* the Today buddy: an emote that pops in, and the ▼ that bobs when a line is fully typed */
+@keyframes emote-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes more-bob {
+  50% { transform: translateY(2px); }
+}
+
+/* a sprite waiting for its photo: a small stepped bob */
+@keyframes sprite-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
 
 @layer base {
   .font-pokemon {
-    font-family: 'PokemonBW', sans-serif;
+    font-family: var(--font-pixel-ds);
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.5);
   }
 
+  /* dialogues (the buddy's talk box, components/today/buddy.tsx) wear .pixel-classic: the same classes switch to Classic */
+  .pixel-classic .font-pokemon,
+  .pixel-classic .font-pokemon-ns,
+  .pixel-classic .font-pokemon-smaller {
+    font-family: var(--font-pixel-classic);
+  }
+
   .font-pokemon-ns {
-    font-family: 'PokemonBW', sans-serif;
+    font-family: var(--font-pixel-ds);
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     /* text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5); */
   }
 
   .font-pokemon-smaller {
-    font-family: 'PokemonBW', sans-serif;
+    font-family: var(--font-pixel-ds);
     @apply tracking-wider;
     /* blocky shadow (no blur) */
     /* text-shadow: 0.5px 0.5px 1px rgba(0, 0, 0, 0.1); */

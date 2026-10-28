@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import Noise from "@/components/turbulenceNoise";
+import { DeviceProvider } from "./deviceContext";
+import ScreenCover from "./screenCover";
 
 type ScreenSize = "standard" | "tall";
 
@@ -21,7 +23,7 @@ const BEZEL_HEIGHT: Record<ScreenSize, string> = {
 };
 
 function sizeFor(pathname: string): ScreenSize | null {
-    if (pathname === "/" || pathname === "/identify" || pathname === "/identify-sound"  || pathname === "/add") return "standard";
+    if (pathname === "/" || pathname === "/pokedex" || pathname === "/identify" || pathname === "/identify-sound"  || pathname === "/add") return "standard";
     if (pathname.startsWith("/bird/") || pathname === "/user") return "tall";
     return null;
 }
@@ -36,6 +38,7 @@ export default function DeviceShell({ children }: { children: ReactNode }) {
     if (!size) return <>{children}</>;
 
     return (
+        <DeviceProvider>
         <div
             // pb: the Android app's bottom bar (0 elsewhere), see --app-bottom-bar in globals.css; everything
             // below the screen is bottom-anchored, so the pokeball and tabs rise with it
@@ -60,8 +63,10 @@ export default function DeviceShell({ children }: { children: ReactNode }) {
                         </nav>
                     </div>
                     {children}
+                    <ScreenCover className={BEZEL_HEIGHT[size]} />
                 </main>
             </div>
         </div>
+        </DeviceProvider>
     );
 }

@@ -62,7 +62,8 @@ export default function Add() {
                                     </div>
                                 </form>
             </DeviceScreen>
-            <DeviceControls>
+            {/* no legend here: the input row straddles the top of the controls, where it would sit */}
+            <DeviceControls legend={false}>
                         {/* straddles the screen's bottom edge: anchored to the top of the controls row, lifted by half its height + 6px */}
                         <div className="absolute top-0 z-10 w-full px-10 flex items-center justify-between gap-2">
                             <input

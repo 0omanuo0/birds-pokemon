@@ -4,7 +4,9 @@ import csv from 'csv-parser';
 import { fileURLToPath } from 'url';
 import { neon } from '@neondatabase/serverless';
 
-const DATABASE_URL = "postgres://neondb_owner:npg_UTcZ2Am6GCzu@ep-raspy-silence-a29c4vt8-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+// node --env-file=.env.local seed.js
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) throw new Error("DATABASE_URL is not set");
 
 
 const sql = neon(`${DATABASE_URL}`);

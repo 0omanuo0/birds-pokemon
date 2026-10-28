@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import DeviceLegend from "./deviceLegend";
 
 // Top grid cell of DeviceShell. The top padding clears the bezel's LED/title row (my-2 + h-8 = 3rem).
 // The page content remounts on navigation, so the fade-in plays while the shell's bezel animates.
@@ -19,9 +20,11 @@ export default function DeviceScreen({ children, className = "", animate = true 
 }
 
 // Bottom grid cell. Relative so tabs and the pokeball keep positioning against the device's bottom edge.
-export function DeviceControls({ children, className = "" }: { children: ReactNode; className?: string }) {
+// The legend (Spin / Press / Hold) sits at the top of it, fed by the page through <DeviceHintsSetter/>.
+export function DeviceControls({ children, className = "", legend = true }: { children: ReactNode; className?: string; legend?: boolean }) {
     return (
         <div className={`relative col-start-1 row-start-2 flex min-h-0 flex-col items-center ${className}`}>
+            {legend && <DeviceLegend />}
             {children}
         </div>
     );

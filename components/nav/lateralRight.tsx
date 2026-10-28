@@ -4,7 +4,21 @@ import { useRouter } from 'next/navigation';
 import type { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
 
 
-export default function LateralRight({ children, target, label, onAction, positionClassName = "bottom-[calc(50vw-32px)] md:bottom-[145px]" }: { children?: React.JSX.Element, target?: string, label?: string, onAction?: () => void, positionClassName?: string }) {
+// Slot layout by how many tabs share the side (n). Full class strings so Tailwind can see them.
+// n=1: one full-height tab (96px) in the original slot, bottom = calc(50vw-32px) / 145px.
+// n=2: two tabs at 2/3 height (64px) with an 8px gap, stacked around the centre of that same slot
+// (centre = bottom + 48px). idx 0 = upper, 1 = lower.
+const SINGLE_POSITION = "bottom-[calc(50vw-32px)] md:bottom-[145px]";
+const DOUBLE_POSITIONS = [
+    "bottom-[calc(50vw+20px)] md:bottom-[197px]",
+    "bottom-[calc(50vw-52px)] md:bottom-[125px]",
+];
+
+// offsetY nudges the tab in px: positive moves it down, negative up. Pass the same value to both tabs of a pair to shift them together.
+export default function LateralRight({ children, target, label, onAction, positionIDX = 0, n = 1, offsetY = 0, positionClassName }: { children?: React.JSX.Element, target?: string, label?: string, onAction?: () => void, positionIDX?: number, n?: number, offsetY?: number, positionClassName?: string }) {
+    const compact = n === 2;
+    const position = positionClassName ?? (compact ? DOUBLE_POSITIONS[positionIDX] ?? SINGLE_POSITION : SINGLE_POSITION);
+
     const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
     const [offsetRight, setOffsetRight] = useState(0);
@@ -175,6 +189,7 @@ export default function LateralRight({ children, target, label, onAction, positi
             style={{
                 right: `${-120 - offsetRight}px`,
                 position: 'absolute',
+                transform: offsetY ? `translateY(${offsetY}px)` : undefined,
                 cursor: isDragging ? 'grabbing' : 'grab',
                 transition: isDragging ? 'none' : 'right 0.2s ease-out',
                 // hard, offset pixel shadow + a soft one underneath for lift
@@ -183,7 +198,7 @@ export default function LateralRight({ children, target, label, onAction, positi
                 WebkitTouchCallout: 'none',
                 WebkitUserSelect: 'none',
             }}
-            className={`group z-90 h-[96px] w-[160px] ${positionClassName}`}
+            className={`group z-90 w-[160px] ${compact ? "h-[64px]" : "h-[96px]"} ${position}`}
         >
             <div
                 style={{
@@ -206,7 +221,7 @@ export default function LateralRight({ children, target, label, onAction, positi
 
                 {/* one background instead of two borders: same reasoning as the bevel above — this keeps
                     the dark and light lines from drifting apart at the clipped edges */}
-                <div className='my-auto h-[64px] w-[3px] shrink-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.25)_0_1px,#9e4042_1px_3px)]' />
+                <div className={`my-auto ${compact ? "h-[40px]" : "h-[64px]"} w-[3px] shrink-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.25)_0_1px,#9e4042_1px_3px)]`} />
 
                 {/* revealed while dragging */}
                 <div

@@ -100,3 +100,10 @@ export const burgerSvg = <svg xmlns="http://www.w3.org/2000/svg" fill="none" vie
     width="100%" height="auto">
     <path d="M20 18H4v-2h16v2Zm0-5H4v-2h16v2Zm0-5H4V6h16v2Z" fill="currentColor" />
 </svg>
+
+export const logoutSvg = <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+    style={{ filter: "drop-shadow(2px 2px 0px rgba(0, 0, 0, 0.5))" }}
+    width="100%" height="auto"
+>
+    <path d="M3 3h11v2H5v14h9v2H3V3zm6 8h12v2H9v-2zm6-4h2v2h-2V7zm2 2h2v2h-2V9zm0 4h2v2h-2v-2zm-2 2h2v2h-2v-2z" fill="currentColor" />
+</svg>

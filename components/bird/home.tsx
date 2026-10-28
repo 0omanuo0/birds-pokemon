@@ -9,7 +9,7 @@ import type { Bird, Sighting } from "@/lib/types";
 import type { BirdInfo } from "@/app/api/bird_info/route";
 import { EMPTY_BIRD_INFO, loadBirdDescription, peekBirdDescription } from "@/lib/birdDescription";
 import { useEffect, useMemo, useRef, useState } from "react";
-import HeadCard, { formatSeenDate } from "../home/headCard";
+import HeadCard, { formatSeenDate } from "../pokedex/headCard";
 import { useRouter } from "next/navigation";
 import { deleteSighting } from "@/lib/actions";
 import DexNotice from "@/components/ui/dexNotice";
@@ -187,7 +187,7 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                     {overlays}
                 </DeviceScreen>
                 <DeviceControls>
-                    <LateralLeft target='/' label="Home">{homeSvg}</LateralLeft>
+                    <LateralLeft offsetY={-200} target='/' label="Home">{homeSvg}</LateralLeft>
                     <LateralRight target={`/bird/${bird.id}/map`} label="Map">{PinSvg}</LateralRight>
                 </DeviceControls>
             </>

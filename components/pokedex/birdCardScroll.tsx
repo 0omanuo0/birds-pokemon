@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { PixelBird, pixelBirdDesignFor } from "@/components/pixelBirds";
 
 function BirdCardScroll(
     { bird, setSelectedBird, known, selected, indent }
@@ -28,6 +29,15 @@ function BirdCardScroll(
                     <path d="M0 0h1v1H0zM0 1h2v1H0zM0 2h3v1H0zM0 3h2v1H0zM0 4h1v1H0z" fill="currentColor" />
                 </svg>
             )}
+
+            {/* the family sprite: a black shadow until the bird is found, then in colour */}
+            <span className="h-[24px] w-[24px] shrink-0">
+                <PixelBird
+                    family={bird.family}
+                    design={pixelBirdDesignFor(bird.family, bird.scientificName)}
+                    silhouette={!known}
+                />
+            </span>
 
             {/* name keeps priority; the scientific name gives way first */}
             <span className="min-w-0 max-w-full shrink-0 truncate font-pokemon text-base leading-none">

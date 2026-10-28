@@ -90,7 +90,7 @@ export default function HeadCard(
                     {known_bird ? selectedBird?.name || "???" : "???"}
                 </h2>
             </div>
-            <div className={"flex gap-x-3 min-w-[40%] max-w-[calc(100%-1rem)] w-fit justify-between text-base text-black pt-1 text-right uppercase font-pokemon mx-2"}>
+            <div className={"flex gap-x-3 min-w-[40%] max-w-[calc(100%-1rem)] w-fit justify-between text-sm text-black pt-1 text-right uppercase font-pokemon mx-2"}>
                 <span className="shrink-0 whitespace-nowrap">
                     {selectedBird ? (
                         <>
@@ -103,7 +103,7 @@ export default function HeadCard(
                 </span>
                 {selectedBird ? (
                     <span className=" flex min-w-0 items-baseline gap-x-1">
-                        <span className="shrink-0 text-gray-500 font-pokemon-ns text-base leading-[1] ">LOC</span>{locNode}
+                        <span className="shrink-0 text-gray-500 font-pokemon-ns text-sm leading-[1]">LOC</span>{locNode}
                     </span>
                 ) : "???"}
             </div>

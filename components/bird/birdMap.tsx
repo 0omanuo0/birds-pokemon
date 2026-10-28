@@ -9,6 +9,7 @@ import LateralLeft from "@/components/nav/lateralLeft";
 import LateralRight from "@/components/nav/lateralRight";
 import PokeballRotation from "@/components/pokeballRotation";
 import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
+import { DeviceHintsSetter } from "@/components/device/deviceContext";
 import { arrowBoxLeftSvg, homeSvg } from "@/components/imageSvg";
 import { formatStamp, HEAT_STEPS } from "./heatSteps";
 
@@ -172,6 +173,7 @@ export default function BirdMap({ bird, heatmap, ebirdSightings: initialEbirdSig
                 <LateralLeft target={`/bird/${bird.id}`} label="Back">{arrowBoxLeftSvg}</LateralLeft>
                 <LateralRight target="/" label="Home">{homeSvg}</LateralRight>
                 {/* press: frame every sighting again */}
+                <DeviceHintsSetter press="FIT" />
                 <PokeballRotation startScroll={0} endScroll={0} onPress={fitAll} />
             </DeviceControls>
         </>

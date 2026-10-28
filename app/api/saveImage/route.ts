@@ -20,6 +20,13 @@ export async function POST(req: Request) {
     if (!image || !bird_id || !image_id) {
         return new Response("Missing required fields", { status: 400 });
     }
+    // both end up in the bucket key: only plain ids, so "../" can't escape birds/<id>/
+    if (!/^\d+$/.test(bird_id) || !/^[\w-]{1,64}$/.test(image_id)) {
+        return new Response("Invalid birdId or imageId", { status: 400 });
+    }
+    if (image.size > 15 * 1024 * 1024) {
+        return new Response("Image too large", { status: 413 });
+    }
 
     const buffer = Buffer.from(await image.arrayBuffer());
 

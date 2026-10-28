@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { useDevice } from "@/components/device/deviceContext";
 
 export type PokeballRotationHandle = {
     // Animates the wheel to the given absolute rotation (degrees), e.g. index * degrees_per_item.
@@ -18,8 +19,16 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     { onWheel, startScroll, endScroll, onPress, onLongPress, snapStep, onDoubleTap }, ref
 ) {
     const DOUBLE_TAP_MS = 250;
+    // holding the centre this long counts as a long press; a ring fills meanwhile so it reads as "charging"
+    const HOLD_MS = 550;
     const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => () => { if (pressTimerRef.current) clearTimeout(pressTimerRef.current); }, []);
+    const device = useDevice();
+    const [holding, setHolding] = useState(false);
+    const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+    // true once the hold fired, so the click that follows the release isn't also treated as a press
+    const holdFiredRef = useRef(false);
+    useEffect(() => () => { if (holdTimerRef.current) clearTimeout(holdTimerRef.current); }, []);
     const [pokRotation, setPokRotation] = useState(startScroll);
     const [isRotating, setIsRotating] = useState(false);
     const [startCords, setStartCoords] = useState({ x: 0, y: 0 });
@@ -27,16 +36,6 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     // so it belongs in a ref rather than state.
     const velocityRef = useRef(0);
     const MAX_VELOCITY = 20;
-    // The Android app (html[data-app]) is touch-only and the list is ~340 birds long: at 1:1 a flick coasted
-    // only a few items. In the app a drag turns the wheel APP_GAIN times as far and a flick glides longer.
-    // Read when used rather than at render, so server and client render the same.
-    const inApp = () => typeof document !== "undefined" && document.documentElement.hasAttribute("data-app");
-    const APP_GAIN = 1.5;
-    // items are 18deg apart and a frame covers ~1.7 "10ms steps": 10 keeps the spin at about one item per
-    // frame, so the wheel rolls past items instead of skipping several each frame (the web cap is 20)
-    const APP_MAX_VELOCITY = 10;
-    const WEB_FRICTION = 0.95; // per 10ms
-    const APP_FRICTION = 0.975;
     // below this speed (degrees per 10ms) the wheel stops coasting and pulls onto the nearest item
     const SNAP_SPEED = 1.5;
     const SNAP_STIFFNESS = 0.08;
@@ -116,12 +115,12 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
 
         const startAngle = Math.atan2(startCords.y, startCords.x) * (180 / Math.PI);
         const currentAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-        const gain = inApp() ? APP_GAIN : 1;
-        const angleDifference = (currentAngle - startAngle) * gain;
+        let angleDifference = (currentAngle - startAngle);
+        // a straight swipe up or down over the middle of the dome counts too (28px per item): thumbs swipe, they don't draw circles
+        if (Math.abs(deltaX) < 70) angleDifference += (deltaY - startCords.y) * 18 / 28;
 
         if (isRotating) {
-            const maxVelocity = inApp() ? APP_MAX_VELOCITY : MAX_VELOCITY;
-            velocityRef.current = Math.max(-maxVelocity, Math.min(maxVelocity, angleDifference));
+            velocityRef.current = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, angleDifference));
             setRotation(pokRotationRef.current + angleDifference);
             setStartCoords({ x: deltaX, y: deltaY });
         }
@@ -182,7 +181,7 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                 newRotation = Math.max(endScroll, newRotation - Math.abs(newRotation - endScroll) * 0.1); // Spring back to endScroll
 
             setRotation(newRotation);
-            velocityRef.current = prevVelocity * Math.pow(inApp() ? APP_FRICTION : WEB_FRICTION, steps); // Apply friction
+            velocityRef.current = prevVelocity * Math.pow(0.95, steps); // Apply friction
 
             inertiaFrameRef.current = requestAnimationFrame(tick);
         }
@@ -208,6 +207,90 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
     }
 
     useImperativeHandle(ref, () => ({ rotateTo }));
+
+    // ── press / hold, shared by the pointer, the context menu and the keyboard ──
+    function cancelHold() {
+        if (holdTimerRef.current) {
+            clearTimeout(holdTimerRef.current);
+            holdTimerRef.current = null;
+        }
+        setHolding(false);
+    }
+
+    function fireHold() {
+        holdFiredRef.current = true;
+        cancelHold();
+        try { navigator.vibrate?.(40); } catch { /* optional */ }
+        // a page that sets its own long press keeps it (even an empty one); otherwise holding throws the ball: Catch
+        if (onLongPress) onLongPress();
+        else device?.holdCatch();
+    }
+
+    function startHold() {
+        holdFiredRef.current = false;
+        cancelHold();
+        setHolding(true);
+        holdTimerRef.current = setTimeout(fireHold, HOLD_MS);
+    }
+
+    function press() {
+        if (!onDoubleTap) {
+            onPress?.();
+            return;
+        }
+        if (pressTimerRef.current) {
+            // second tap inside the window: it's a double tap, cancel the pending single press
+            clearTimeout(pressTimerRef.current);
+            pressTimerRef.current = null;
+            onDoubleTap();
+            return;
+        }
+        pressTimerRef.current = setTimeout(() => {
+            pressTimerRef.current = null;
+            onPress?.();
+        }, DOUBLE_TAP_MS);
+    }
+
+    // one detent in a direction, for the arrow keys: land on the neighbouring item, like a finished spin
+    function stepBy(direction: 1 | -1) {
+        if (endScroll <= startScroll) return;
+        const step = snapStep ?? 18;
+        stopInertiaLoop();
+        velocityRef.current = 0;
+        const base = Math.round(pokRotationRef.current / step) * step;
+        setRotation(Math.min(Math.max(base + direction * step, startScroll), endScroll));
+    }
+
+    // Keyboard: arrows spin, Enter presses, Space presses (tap) or holds. The handler lives in a ref so the single
+    // window listener always sees this render's props and state.
+    const keyHandlerRef = useRef<(e: KeyboardEvent) => void>(() => { });
+    keyHandlerRef.current = (e: KeyboardEvent) => {
+        if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+        const t = e.target;
+        if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+        // keys that would activate some other focused control belong to it, not to the ball
+        const otherControl = t instanceof HTMLElement && t !== pokeballCenterRef.current && !!t.closest("button, a, [role='button']");
+
+        if (e.type === "keydown") {
+            if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); stepBy(1); }
+            else if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); stepBy(-1); }
+            else if (e.key === "Enter" && !otherControl) { e.preventDefault(); if (!e.repeat) press(); }
+            else if (e.key === " " && !otherControl) { e.preventDefault(); if (!e.repeat) startHold(); }
+        } else if (e.key === " " && !otherControl) {
+            e.preventDefault();
+            if (holdFiredRef.current) holdFiredRef.current = false;
+            else if (holdTimerRef.current) { cancelHold(); press(); }
+        }
+    };
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => keyHandlerRef.current(e);
+        window.addEventListener("keydown", onKey);
+        window.addEventListener("keyup", onKey);
+        return () => {
+            window.removeEventListener("keydown", onKey);
+            window.removeEventListener("keyup", onKey);
+        };
+    }, []);
 
     // when loads the component make a small animation changing the speed to show that is able to rotate
     useEffect(() => {
@@ -283,30 +366,36 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                 }}
                 className="shadow-lg bg-clip-padding border-[#2e2728] border-8 w-full aspect-square h-auto rounded-full absolute overflow-hidden"
             />
+            {/* hold ring: fills while the centre is held, then the long press fires */}
+            <svg
+                aria-hidden
+                viewBox="0 0 104 104"
+                className="pointer-events-none absolute left-1/2 -bottom-[55px] z-[1] h-[104px] w-[104px] -translate-x-1/2 -rotate-90"
+            >
+                <circle
+                    cx="52" cy="52" r="48" fill="none" stroke="#facc15" strokeWidth="5"
+                    strokeDasharray={301.6} strokeDashoffset={holding ? 0 : 301.6}
+                    style={{ opacity: holding ? 1 : 0, transition: holding ? `stroke-dashoffset ${HOLD_MS}ms linear` : "none" }}
+                />
+            </svg>
             <button
+                onPointerDown={startHold}
+                onPointerUp={cancelHold}
+                onPointerLeave={cancelHold}
+                onPointerCancel={cancelHold}
                 onClick={(e) => {
                     e.preventDefault();
-                    if (!onDoubleTap) {
-                        onPress?.();
+                    // the click after a long hold is the release of that hold, not a press
+                    if (holdFiredRef.current) {
+                        holdFiredRef.current = false;
                         return;
                     }
-                    if (pressTimerRef.current) {
-                        // second tap inside the window: it's a double tap, cancel the pending single press
-                        clearTimeout(pressTimerRef.current);
-                        pressTimerRef.current = null;
-                        onDoubleTap();
-                        return;
-                    }
-                    pressTimerRef.current = setTimeout(() => {
-                        pressTimerRef.current = null;
-                        onPress?.();
-                    }, DOUBLE_TAP_MS);
+                    press();
                 }}
                 onContextMenu={(e) => {
+                    // touch long-press / right click: same as holding
                     e.preventDefault();
-                    if (onLongPress) {
-                        onLongPress();
-                    }
+                    if (!holdFiredRef.current) fireHold();
                 }}
                 ref={pokeballCenterRef}
                 className="absolute shadow-[0_0_30px_0_rgba(0,0,0,0.6)] left-1/2 transform -translate-x-1/2 -bottom-[43px] rounded-full bg-white bg-clip-padding border-8 border-[#2e2728] w-20 h-20 flex items-center justify-center touch-manipulation hover:cursor-pointer hover:bg-yellow-100 active:bg-yellow-100"
