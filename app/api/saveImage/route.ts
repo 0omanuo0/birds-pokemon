@@ -30,8 +30,15 @@ export async function POST(req: Request) {
 
     const buffer = Buffer.from(await image.arrayBuffer());
 
-    // convert the image to webp format
-    const webpBuffer = await sharp(buffer).rotate().webp().withMetadata().toBuffer();
+    // webp, at most 2048px on the long side: the dex shows photos at a few hundred px, and full camera
+    // resolution made every photo window download megabytes. Only the colour profile is kept: the bucket is
+    // public, and the EXIF carried the photo's exact GPS position (the sightings map rounds it to ~1 km).
+    const webpBuffer = await sharp(buffer)
+        .rotate()
+        .resize({ width: 2048, height: 2048, fit: "inside", withoutEnlargement: true })
+        .webp()
+        .keepIccProfile()
+        .toBuffer();
 
 
 
