@@ -27,7 +27,8 @@ export default async function Pokedex() {
 
     birds_known = birds_known.map((bird: any) => {
         Object.entries(bird).forEach(([key, value]) => {
-            if (typeof value === 'string') {
+            // the pixel font has no accents, but a URL with one stripped points at a different (missing) file
+            if (typeof value === 'string' && !/url/i.test(key)) {
                 bird[key] = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             }
         });
