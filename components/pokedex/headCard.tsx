@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchRetry } from "@/lib/fetchJson";
 
 
 // "14 MAR 2026" layout, with the month name from the browser's preferred language.
@@ -44,13 +45,13 @@ export default function HeadCard(
         let cancelled = false;
         const timeoutId = setTimeout(() => {
             const [lat, lon] = parts;
-            fetch(`/api/reverse-geocode?lat=${encodeURIComponent(lat.trim())}&lon=${encodeURIComponent(lon.trim())}`)
-                .then(response => response.json())
+            fetchRetry(`/api/reverse-geocode?lat=${encodeURIComponent(lat.trim())}&lon=${encodeURIComponent(lon.trim())}`, {}, { timeout: 10000 })
+                .then(response => response.ok ? response.json() : null)
                 .then(data => {
                     // a slower answer for the previous bird mustn't overwrite this one
-                    if (!cancelled) setLocation(data.location || "???");
+                    if (!cancelled) setLocation(data?.location || "???");
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(() => { if (!cancelled) setLocation("???"); });
         }, 800); // Wait 800ms before fetching
 
         return () => { cancelled = true; clearTimeout(timeoutId); };

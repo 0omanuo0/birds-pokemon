@@ -27,7 +27,13 @@ export async function pushBird(
     const userId = await currentUserId(sql);
     if (!userId) return { success: false, error: "Not signed in." };
 
-    const img_url = process.env.CLOUDFLARE_R2_API_ENDPOINT + "/birds/" + birdId + "/" + imageId + ".webp";
+    const endpoint = process.env.CLOUDFLARE_R2_API_ENDPOINT;
+    if (!endpoint) {
+        // otherwise the row would point at "undefined/birds/…" and every photo of it would be broken
+        console.error("CLOUDFLARE_R2_API_ENDPOINT is not set");
+        return { success: false, error: "Photo storage is not configured." };
+    }
+    const img_url = endpoint + "/birds/" + birdId + "/" + imageId + ".webp";
     try {
         await sql`
             INSERT INTO sightings (user_id, bird_id, location, photo_url, seen_at)
