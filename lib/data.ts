@@ -2,6 +2,7 @@
 import { neon } from "@neondatabase/serverless";
 import { unstable_cache } from "next/cache";
 import type { Bird } from "@/lib/types";
+import { stripAccents } from "@/lib/text";
 
 // The dex's species list, for the Pokédex page. The ~600 rows are the same for every user and change about never,
 // so they're cached for an hour instead of fetched (with every column, fun facts included) on each visit.
@@ -11,7 +12,7 @@ export const dexBirds = unstable_cache(
         const rows = await sql`SELECT bird_id, common_name, scientific_name, family, na, ca, pb, name_en, seo_notes FROM birds ORDER BY bird_id;`;
         return rows.map((bird: any) => ({
             id: bird.bird_id,
-            name: bird.common_name.normalize('NFD').replace(/[̀-ͯ]/g, ''),
+            name: stripAccents(bird.common_name),
             scientificName: bird.scientific_name,
             family: bird.family,
             na: bird.na,
@@ -25,7 +26,25 @@ export const dexBirds = unstable_cache(
     { revalidate: 60 * 60 }
 );
 
-export type SightingStamp = { name: string; seenAt: number }; // seenAt: unix seconds
+// One birds row as the bird pages use it (ebird_code only when the query selected it).
+function mapBirdRow(row: Record<string, any>) {
+    return {
+        id: row.bird_id,
+        name: stripAccents(row.common_name),
+        scientificName: row.scientific_name,
+        family: row.family,
+        subspecies: row.subspecies,
+        name_en: row.name_en,
+        name_es: row.name_es,
+        pb: row.pb,
+        na: row.na,
+        ca: row.ca,
+        seo_notes: row.seo_notes,
+        ebirdCode: (row.ebird_code ?? null) as string | null,
+    };
+}
+
+export type SightingStamp ={ name: string; seenAt: number }; // seenAt: unix seconds
 export type HeatmapCell = { lat: number; lng: number; count: number; latest: SightingStamp[] };
 export type BirdHeatmap = {
     cells: HeatmapCell[];
@@ -104,21 +123,7 @@ export async function fetchBirdData(birdName: string) {
     if (birds_data_raw.length === 0) {
         return null; // No bird found with the given name
     }
-    const bird_data = birds_data_raw[0];
-    const bird = {
-        id: bird_data.bird_id,
-        name: bird_data.common_name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-        scientificName: bird_data.scientific_name,
-        family: bird_data.family,
-        subspecies: bird_data.subspecies,
-        name_en: bird_data.name_en,
-        name_es: bird_data.name_es,
-        pb: bird_data.pb,
-        na: bird_data.na,
-        ca: bird_data.ca,
-        seo_notes: bird_data.seo_notes,
-    };
-    return bird;
+    return mapBirdRow(birds_data_raw[0]);
 }
 
 // fetch by id; null for an unknown or malformed id (it used to throw, so /bird/<bad id> was a 500)
@@ -130,22 +135,7 @@ export async function fetchBirdById(birdId: string) {
         SELECT bird_id, common_name, scientific_name, family, subspecies, name_en, name_es, pb, na, ca, seo_notes, ebird_code
         FROM birds WHERE bird_id = ${birdId} LIMIT 1;`;
     if (birds_data_raw.length === 0) return null;
-    const bird_data = birds_data_raw[0];
-    const bird = {
-        id: bird_data.bird_id,
-        name: bird_data.common_name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-        scientificName: bird_data.scientific_name,
-        family: bird_data.family,
-        subspecies: bird_data.subspecies,
-        name_en: bird_data.name_en,
-        name_es: bird_data.name_es,
-        pb: bird_data.pb,
-        na: bird_data.na,
-        ca: bird_data.ca,
-        seo_notes: bird_data.seo_notes,
-        ebirdCode: bird_data.ebird_code as string | null,
-    };
-    return bird;
+    return mapBirdRow(birds_data_raw[0]);
 }
 
 

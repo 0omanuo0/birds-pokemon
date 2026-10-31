@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { stripAccents } from "@/lib/text";
 
 // "Around you at this time of year": which of our species are normally reported near a point in this part of the
 // year (GBIF's copy of the eBird dataset, cached per grid cell and month in our own DB) and which were reported
@@ -37,7 +38,7 @@ export function monthWeights(date: Date): { month: number; weight: number }[] {
 }
 
 const db = () => neon(process.env.DATABASE_URL || "");
-const plain = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "");
+const plain = stripAccents;
 
 // ───────────────────────── filling a cell from GBIF ─────────────────────────
 

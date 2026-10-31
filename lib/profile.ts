@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { stripAccents } from "@/lib/text";
 import { BIRD_GROUPS, OTHER_GROUP, groupOf } from "@/lib/birdGroups";
 import { buildStamps, type Stamp } from "@/lib/stamps";
 
@@ -31,7 +32,7 @@ export type Profile = {
 const LOCAL_TZ = "Europe/Madrid";
 
 // The pixel font has no accents; the dex strips them from names the same way.
-const plain = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "");
+const plain = stripAccents;
 
 export async function getProfile(email: string): Promise<Profile | null> {
     const sql = neon(process.env.DATABASE_URL || "");

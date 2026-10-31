@@ -4,6 +4,7 @@ import { neon } from '@neondatabase/serverless';
 import { getCurrentUser } from '@/lib/currentUser';
 import { dexBirds } from '@/lib/data';
 import { redirect } from 'next/navigation';
+import { stripAccents } from '@/lib/text';
 
 export default async function Pokedex() {
     const sql = neon(process.env.DATABASE_URL || "");
@@ -29,7 +30,7 @@ export default async function Pokedex() {
         Object.entries(bird).forEach(([key, value]) => {
             // the pixel font has no accents, but a URL with one stripped points at a different (missing) file
             if (typeof value === 'string' && !/url/i.test(key)) {
-                bird[key] = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                bird[key] = stripAccents(value);
             }
         });
         return bird;

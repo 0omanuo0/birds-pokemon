@@ -2,9 +2,10 @@ import Profile from "@/components/user/profile";
 import { getSessionOrDevBypass } from "@/lib/session";
 import { getProfile } from "@/lib/profile";
 import { redirect } from "next/navigation";
+import { stripAccents } from "@/lib/text";
 
 // the pixel font has no accents; the dex strips them from names the same way
-const plain = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "");
+const plain = stripAccents;
 
 export default async function UserPage() {
     const session = await getSessionOrDevBypass();

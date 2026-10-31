@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { fetchRetry } from "@/lib/fetchJson";
+import { foldKey } from "@/lib/text";
 import { HTMLElement, Node, NodeType, parse } from "node-html-parser";
 
 export type DescriptionSection = { title: string; body: string };
@@ -40,11 +41,7 @@ const TAXONOMY_LABELS = ["Orden", "Familia", "Género", "Especie"];
 const IUCN_CODES: IucnCode[] = ["EX", "EW", "CR", "EN", "VU", "NT", "LC", "DD", "NE"];
 
 function normalizeId(id: string): string {
-    return id
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .replace(/\s+/g, "_");
+    return foldKey(id).replace(/\s+/g, "_");
 }
 
 function escapeHtml(text: string): string {

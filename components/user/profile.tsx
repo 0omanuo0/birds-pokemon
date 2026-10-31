@@ -11,7 +11,7 @@ import DexNotice from "@/components/ui/dexNotice";
 import SafeImg from "@/components/safeImg";
 import { DeviceHintsSetter } from "@/components/device/deviceContext";
 import { arrowBoxLeftSvg, homeSvg, logoutSvg, userSvg } from "@/components/imageSvg";
-import { formatSeenDate } from "@/components/pokedex/headCard";
+import { formatSeenDate } from "@/lib/format";
 import type { PageProgress, RecentSighting } from "@/lib/profile";
 import type { Stamp, StampId } from "@/lib/stamps";
 
