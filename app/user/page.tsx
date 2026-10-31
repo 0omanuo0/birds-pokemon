@@ -17,9 +17,9 @@ export default async function UserPage() {
         redirect("/api/auth/signin");
     }
 
-    const image = session.user.image
-        ? `https://images.weserv.nl/?url=${encodeURIComponent(session.user.image)}`
-        : null;
+    // straight from Google (the profile sends no referrer): the weserv.nl proxy it used to go through was one more
+    // thing that could be down or rate-limited
+    const image = session.user.image ?? null;
 
     // frame, backdrop and bezel come from DeviceShell in the root layout ("tall" screen size)
     return (

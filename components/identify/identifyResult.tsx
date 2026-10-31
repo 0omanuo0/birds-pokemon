@@ -12,6 +12,7 @@ import { ClockSvg, PinSvg } from "@/components/imageSvg";
 import { formatSeenDate } from "@/components/pokedex/headCard";
 import IucnScale from "@/components/bird/iucnScale";
 import DexNotice from "@/components/ui/dexNotice";
+import SafeImg from "@/components/safeImg";
 import DateTimePicker from "./datetimePicker";
 
 const MapWithNoSSR = dynamic(() => import("@/components/identify/map"), { ssr: false });
@@ -149,11 +150,11 @@ function AlternativeCard({ candidate, selected, isAiPick, onSelect }: {
             className={`pixel-corners-4 flex w-[104px] shrink-0 cursor-pointer touch-manipulation snap-start flex-col gap-1 p-1 text-left transition-colors ${selected ? "bg-yellow-400 text-neutral-900" : "bg-neutral-700 text-neutral-100 hover:bg-neutral-600"}`}
         >
             <div className="pixel-corners-4 relative aspect-square w-full overflow-hidden bg-neutral-800">
-                {info?.photo ? (
-                    <img src={info.photo.src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                ) : (
-                    <div className={`flex h-full w-full items-center justify-center font-pokemon text-xl text-neutral-500 ${info ? "" : "animate-pulse"}`}>?</div>
-                )}
+                <SafeImg
+                    src={info?.photo?.src}
+                    fallback={<div className={`flex h-full w-full items-center justify-center font-pokemon text-xl text-neutral-500 ${info ? "" : "animate-pulse"}`}>?</div>}
+                    alt="" loading="lazy" decoding="async" className="h-full w-full object-cover"
+                />
                 {isAiPick && <span className="pixel-corners-4 absolute left-1 top-1 bg-neutral-900/80 px-1 font-pokemon text-[10px] text-yellow-400">AI</span>}
                 {candidate.bird && (
                     <span
@@ -340,7 +341,7 @@ export default function IdentifyResult({ candidates, photoUrl, image, userId, on
                                 aria-label="View the reference photo full size"
                                 className="pixel-corners-4 relative block aspect-square w-full cursor-zoom-in overflow-hidden bg-neutral-800"
                             >
-                                <img src={info.photo.src} srcSet={info.photo.srcSet} alt={`Reference: ${displayName(selected)}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                                <SafeImg src={info.photo.src} srcSet={info.photo.srcSet} fallback={<div className="flex h-full w-full items-center justify-center font-pokemon text-xl text-neutral-500">?</div>} alt={`Reference: ${displayName(selected)}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                 <ZoomHint />
                             </button>
                         ) : (
