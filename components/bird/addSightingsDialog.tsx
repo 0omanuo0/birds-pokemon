@@ -85,7 +85,7 @@ export default function AddSightingsDialog({ birdId, birdName, initialFiles, onC
             const small = await resizeToJpeg(item.file);
             const formData = new FormData();
             formData.append("image", small, "photo.jpg");
-            const response = await fetch("/api/identify", { method: "POST", body: formData });
+            const response = await fetch("/api/identify", { method: "POST", body: formData, signal: AbortSignal.timeout(30_000) });
             const data: IdentifyResponse | IdentifyError | null = await response.json().catch(() => null);
             if (!mounted.current) return;
             if (!response.ok || !data || "error" in data || data.candidates.length === 0) {

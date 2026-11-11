@@ -2,6 +2,7 @@ import { Bird } from "@/lib/types";
 import { BIRD_GROUPS, OTHER_GROUP, groupOf } from "@/lib/birdGroups";
 import { memo, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { searchSvg } from "../imageSvg";
+import { foldKey } from "@/lib/text";
 
 type Region = "pb" | "na" | "ca";
 type Status = "all" | "seen" | "unseen";
@@ -22,7 +23,7 @@ const STATUSES: { key: Status; label: string }[] = [
 // results are capped in the DOM; the count in the banner is always the full number
 const RESULT_LIMIT = 60;
 
-const norm = (s: string | undefined) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const norm = foldKey;
 
 function Chip({ on, onClick, children, title, onClass = "bg-yellow-400 text-neutral-900" }: {
     on: boolean; onClick: () => void; children: ReactNode; title?: string; onClass?: string;

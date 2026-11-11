@@ -1,4 +1,5 @@
 import { getSessionOrDevBypass } from '@/lib/session';
+import { fetchRetry } from '@/lib/fetchJson';
 
 // Bounded, so a long-running server doesn't grow it forever; the oldest entry goes first.
 const CACHE_MAX = 2000;
@@ -51,16 +52,21 @@ export async function GET(req: Request) {
 
     try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
-        const response = await fetch(url, {
+        // Nominatim allows ~1 request per second and answers 429 with an HTML body: retry once, never parse that
+        const response = await fetchRetry(url, {
             headers: {
                 'User-Agent': 'BirdsPokemon/1.0 (manu365manu@gmail.com)',
             }
-        });
+        }, { timeout: 6000, retries: 1, backoff: 1100 });
 
+        // a non-2xx here lets the browser (and the client) treat it as a failure to retry, not as "no place"
+        if (!response.ok) {
+            return Response.json({ location: null, error: 'Geocoder unavailable' }, { status: 502 });
+        }
         const data = await response.json();
 
-        // only real answers are kept: a rate-limited or empty reply used to be cached as undefined for good
-        if (!response.ok || typeof data?.display_name !== 'string') {
+        // only real answers are kept
+        if (typeof data?.display_name !== 'string') {
             return Response.json({ location: null }, { status: 200 });
         }
         if (temp_Cache.size >= CACHE_MAX) temp_Cache.delete(temp_Cache.keys().next().value!);

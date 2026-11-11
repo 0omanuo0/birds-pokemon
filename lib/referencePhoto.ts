@@ -1,4 +1,5 @@
 import { loadBirdDescription } from "@/lib/birdDescription";
+import { fetchRetry } from "@/lib/fetchJson";
 
 // A species' reference photo: the lead image of its Wikipedia article. The REST summary endpoint is a
 // small JSON straight from the browser (CORS allowed), far quicker than /api/bird_info, which downloads
@@ -15,12 +16,22 @@ function warm(src: string) {
     image.src = src;
 }
 
-async function fetchSummaryThumbnail(scientificName: string): Promise<string | null> {
+// How long a failed lookup is remembered, so a spinning wheel doesn't hammer Wikipedia but a transient failure heals.
+const FAILURE_TTL_MS = 60_000;
+
+type Lookup = { src: string | null; failed: boolean };
+
+async function fetchSummaryThumbnail(scientificName: string): Promise<Lookup> {
     const title = encodeURIComponent(scientificName.trim().replace(/\s+/g, "_"));
-    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`);
-    if (!response.ok) return null;
-    const json = await response.json();
-    return json?.thumbnail?.source ?? null;
+    try {
+        const response = await fetchRetry(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`, {}, { timeout: 6000 });
+        if (response.status === 404) return { src: null, failed: false };
+        if (!response.ok) return { src: null, failed: true };
+        const json = await response.json();
+        return { src: json?.thumbnail?.source ?? null, failed: false };
+    } catch {
+        return { src: null, failed: true };
+    }
 }
 
 export function loadReferencePhoto(scientificName: string): Promise<string | null> {
@@ -28,9 +39,22 @@ export function loadReferencePhoto(scientificName: string): Promise<string | nul
     if (cached) return cached;
 
     const request = fetchSummaryThumbnail(scientificName)
-        .catch(() => null)
-        .then(src => src ?? loadBirdDescription(scientificName).then(info => info.photo?.src ?? null).catch(() => null))
-        .then(src => {
+        .then(async (summary): Promise<Lookup> => {
+            if (summary.src) return summary;
+            try {
+                const info = await loadBirdDescription(scientificName);
+                return { src: info.photo?.src ?? null, failed: summary.failed };
+            } catch {
+                return { src: null, failed: true };
+            }
+        })
+        .then(({ src, failed }) => {
+            if (failed && !src) {
+                // not "this bird has no photo" but "we couldn't find out": forget it (after a short pause, so a
+                // spinning wheel doesn't hammer Wikipedia) so the next look retries
+                setTimeout(() => cache.delete(scientificName), FAILURE_TTL_MS);
+                return null;
+            }
             resolved.set(scientificName, src);
             if (src) warm(src);
             return src;

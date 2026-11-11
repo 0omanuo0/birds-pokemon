@@ -22,6 +22,7 @@ const ERROR_TEXT: Record<ErrorKind, { title: string; message: string }> = {
     backend: { title: 'Offline', message: "Couldn't reach the identifier. Try again in a few seconds." },
     no_bird: { title: 'No results', message: 'No bird was detected in the photo. Try getting closer or framing it better.' },
     no_image: { title: 'Invalid photo', message: "The photo couldn't be read. Try another image." },
+    unauthorized: { title: 'Signed out', message: 'Your session has expired. Sign in again to identify birds.' },
     network: { title: 'Network error', message: "The photo couldn't be sent. Check your connection." },
     camera: { title: 'Camera', message: "The camera isn't ready yet." },
 };
@@ -56,7 +57,8 @@ export default function IdentifyPage() {
             const formData = new FormData();
             formData.append('image', small, 'photo.jpg');
 
-            const response = await fetch('/api/identify', { method: 'POST', body: formData });
+            // the server gives the backend 20 s; without a limit here a dropped connection left "analyzing" forever
+            const response = await fetch('/api/identify', { method: 'POST', body: formData, signal: AbortSignal.timeout(30_000) });
             const data: IdentifyResponse | IdentifyError | null = await response.json().catch(() => null);
 
             if (!response.ok || !data || 'error' in data || data.candidates.length === 0) {

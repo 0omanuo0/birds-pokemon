@@ -1,4 +1,5 @@
 import type { BirdInfo } from "@/app/api/bird_info/route";
+import { fetchRetry } from "@/lib/fetchJson";
 
 // In-memory cache for /api/bird_info, shared by the whole client session. Home warms it while a bird
 // stays selected, so the bird page usually finds the info already there instead of waiting.
@@ -20,8 +21,12 @@ export function loadBirdDescription(scientificName: string): Promise<BirdInfo> {
     const cached = pending.get(scientificName);
     if (cached) return cached;
 
-    const request = fetch(`/api/bird_info?name=${encodeURIComponent(scientificName)}`)
-        .then(response => response.json())
+    const request = fetchRetry(`/api/bird_info?name=${encodeURIComponent(scientificName)}`, {}, { timeout: 12000 })
+        .then(response => {
+            // a 502 carries the empty result as its body: caching that would pin "no info" for the whole session
+            if (!response.ok) throw new Error(`bird_info ${response.status}`);
+            return response.json();
+        })
         .then((info: BirdInfo) => {
             resolved.set(scientificName, info);
             return info;
