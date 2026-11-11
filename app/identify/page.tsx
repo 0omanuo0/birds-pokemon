@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import CameraComponent from '@/components/identify/camera';
-import PokeballRotation from '@/components/pokeballRotation';
-import { burgerSvg, homeSvg, ImageAddSvg, MicSvg } from '@/components/imageSvg';
+import Viewfinder from '@/components/identify/viewfinder';
+import AddPhotoDialog from '@/components/identify/addPhotoDialog';
+import { useCamera } from '@/lib/useCamera';
+import PokeballRotation, { type PokeballRotationHandle } from '@/components/pokeballRotation';
+import { burgerSvg, homeSvg } from '@/components/imageSvg';
 import LateralRight from '@/components/nav/lateralRight';
 import LateralLeft from '@/components/nav/lateralLeft';
 import IdentifyResult from '@/components/identify/identifyResult';
@@ -13,9 +14,13 @@ import { DeviceHintsSetter } from '@/components/device/deviceContext';
 import DeviceScreen, { DeviceControls } from '@/components/device/deviceScreen';
 import { useUser } from '@/components/userContext';
 import { resizeToJpeg } from '@/lib/resizeImage';
+import { captureStill } from '@/lib/camera';
 import type { IdentifyCandidate, IdentifyError, IdentifyResponse } from '@/app/api/identify/route';
 
-type Phase = 'idle' | 'analyzing' | 'result' | 'error';
+// degrees of the pokeball per zoom step
+const WHEEL_STEP = 45;
+
+type Phase ='idle' | 'analyzing' | 'result' | 'error';
 type ErrorKind = IdentifyError['error'] | 'network' | 'camera';
 
 const ERROR_TEXT: Record<ErrorKind, { title: string; message: string }> = {
@@ -28,13 +33,9 @@ const ERROR_TEXT: Record<ErrorKind, { title: string; message: string }> = {
 };
 
 export default function IdentifyPage() {
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    const streamRef = useRef<MediaStream | null>(null);
     const { user } = useUser();
-    const router = useRouter();
-
-    const [scale, setScale] = useState(1);
     const [phase, setPhase] = useState<Phase>('idle');
+    const [adding, setAdding] = useState(false);
     const [capture, setCapture] = useState<{ blob: Blob; url: string } | null>(null);
     const [candidates, setCandidates] = useState<IdentifyCandidate[]>([]);
     const [error, setError] = useState<ErrorKind>('backend');
@@ -42,6 +43,31 @@ export default function IdentifyPage() {
     // Release the camera while the result or an error covers it (saves CPU, battery and heat).
     // It restarts when back to idle; permission is already granted, so no prompt, just a short restart.
     const cameraActive = phase !== 'result' && phase !== 'error';
+    // the camera, its zoom and its list of lenses (lib/useCamera.ts)
+    const camera = useCamera(cameraActive);
+    const { videoRef, streamRef, zoom } = camera;
+    // CSS zoom only where the camera can't zoom itself; the photo is cropped the same way
+    const cssZoom = zoom.hardware ? 1 : zoom.value;
+
+    // The pokeball is the zoom dial: WHEEL_STEP degrees per zoom step. It turns freely (it stays wherever it is let go, so any
+    // zoom in between is fine), and tapping a step on screen turns it there. In between, the zoom is interpolated between the
+    // two neighbouring steps; the step lit on screen is the nearest one.
+    const wheelRef = useRef<PokeballRotationHandle>(null);
+    const steps = zoom.steps;
+    const zoomAt = (rotation: number) => {
+        const pos = Math.max(0, rotation / WHEEL_STEP);
+        const i = Math.min(Math.floor(pos), steps.length - 1);
+        const next = steps[Math.min(i + 1, steps.length - 1)];
+        return steps[i] + (next - steps[i]) * (pos - i);
+    };
+    // the camera loads after the page and brings its own steps (x0.5 ... x10): put the dial on the step the zoom is at
+    const stepsKey = steps.join(',');
+    useEffect(() => {
+        let best = 0;
+        steps.forEach((s, i) => { if (Math.abs(s - zoom.value) < Math.abs(steps[best] - zoom.value)) best = i; });
+        wheelRef.current?.rotateTo(best * WHEEL_STEP);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stepsKey, camera.ready]);
 
     // free the photo's object URL when it's replaced or the page unmounts
     useEffect(() => () => { if (capture) URL.revokeObjectURL(capture.url); }, [capture]);
@@ -81,17 +107,6 @@ export default function IdentifyPage() {
         setCapture(null);
     }
 
-    function uploadPhoto() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = event => {
-            const file = (event.target as HTMLInputElement).files?.[0];
-            if (file) identify(file);
-        };
-        input.click();
-    }
-
     function predict() {
         const video = videoRef.current;
         if (!video || !streamRef.current || !video.videoWidth) {
@@ -99,40 +114,31 @@ export default function IdentifyPage() {
             setPhase('error');
             return;
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(blob => { if (blob) identify(blob); }, 'image/jpeg', 0.92);
+        // a full-size still from the sensor where the browser allows it, cropped to what the preview showed;
+        // anything going wrong there falls back to the plain frame grab this page always used
+        const track = streamRef.current.getVideoTracks()[0];
+        captureStill(video, track, cssZoom).catch(() => null).then(blob => {
+            if (blob) { identify(blob); return; }
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(b => { if (b) identify(b); }, 'image/jpeg', 0.92);
+        });
     }
 
     // frame, backdrop and bezel come from DeviceShell in the root layout
     return (
         <>
             <DeviceScreen>
-                <div className="relative flex h-full w-full flex-row">
-                    <CameraComponent videoRef={videoRef} streamRef={streamRef} scale={scale} active={cameraActive} />
-                </div>
+                {/* camera, mode switch, camera switch, add-photo and zoom rail: components/identify/viewfinder.tsx */}
+                <Viewfinder
+                    camera={camera}
+                    onAddPhoto={() => { if (phase === 'idle') setAdding(true); }}
+                    onZoomStep={i => wheelRef.current?.animateTo(i * WHEEL_STEP)}
+                />
 
-                {phase === 'idle' && (
-                    <div className="absolute bottom-0 right-0 m-4 flex h-16 w-fit items-end justify-center gap-2">
-                        {/* the other half of identify: same flow, ears instead of eyes */}
-                        <button
-                            onClick={() => router.push('/identify-sound')}
-                            aria-label="Identify by sound"
-                            className="z-[30] h-10 w-10 cursor-pointer border-2 border-neutral-700/70 bg-red-400 px-1 py-1"
-                        >
-                            {MicSvg}
-                        </button>
-                        <button
-                            onClick={uploadPhoto}
-                            aria-label="Upload photo"
-                            className="z-[30] h-10 w-10 cursor-pointer border-2 border-neutral-700/70 bg-red-400 px-1 py-1"
-                        >
-                            {ImageAddSvg}
-                        </button>
-                    </div>
-                )}
+                <AddPhotoDialog open={adding && phase === 'idle'} onClose={() => setAdding(false)} onFile={identify} />
 
                 {/* analyzing: show the captured photo with a scan line while the model works */}
                 {phase === 'analyzing' && capture && (
@@ -177,14 +183,12 @@ export default function IdentifyPage() {
                 <LateralLeft target='/' label="Home">{homeSvg}</LateralLeft>
                 <LateralRight target='/pokedex' label="Pokedex">{burgerSvg}</LateralRight>
                 {/* labelled for this page's pokeball: press identifies, spinning zooms, hold does nothing here */}
-                <DeviceHintsSetter press="Scan" hold={null} />
+                <DeviceHintsSetter press="Scan" hold={null} more={[{ symbol: "↻", verb: "Spin", label: "Zoom" }]} />
                 <PokeballRotation
-                    onWheel={(e) => {
-                        if (e < 0) return;
-                        setScale(e / 32 + 1);
-                    }}
+                    ref={wheelRef}
+                    onWheel={e => { if (e >= 0) zoom.set(zoomAt(e)); }}
                     startScroll={0}
-                    endScroll={32 * 4}
+                    endScroll={Math.max(0, (steps.length - 1) * WHEEL_STEP)}
                     onPress={() => {
                         if (phase === 'idle') predict();
                     }}

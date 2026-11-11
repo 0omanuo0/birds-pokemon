@@ -7,6 +7,9 @@ export type PokeballRotationHandle = {
     // Animates the wheel to the given absolute rotation (degrees), e.g. index * degrees_per_item.
     // Imperative on purpose: no prop/effect round trip for the parent to command a position.
     rotateTo: (rotation: number) => void;
+    // Same, but eased over a moment (the wheel passes through the values in between, notifying onWheel as it goes).
+    // For short hops, like tapping a zoom step; rotateTo is for jumps that must not spin through everything in between.
+    animateTo: (rotation: number) => void;
 };
 
 const wheelTransform = (rotation: number) => `translateX(-50%) translateY(calc(50% + 3px)) rotate(${rotation.toFixed(2)}deg)`;
@@ -129,7 +132,11 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
 
         if (isRotatingRef.current) {
             velocityRef.current = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, angleDifference));
-            setRotation(pokRotationRef.current + angleDifference);
+            // Held inside the range while dragging. The wheel only shows the clamped value, so letting the stored one run past
+            // the end made a dead zone: turn back and it did not move until the hidden overshoot was unwound, which felt like
+            // the ball resisting. Matters most with a short range (the zoom dial has only a few steps).
+            const { startScroll, endScroll } = propsRef.current;
+            setRotation(Math.min(Math.max(pokRotationRef.current + angleDifference, startScroll), endScroll));
             startCordsRef.current = { x: deltaX, y: deltaY };
         }
     }
@@ -216,7 +223,22 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
         setRotation(clampedTarget);
     }
 
-    useImperativeHandle(ref, () => ({ rotateTo }));
+    function animateTo(target: number) {
+        const { startScroll, endScroll } = propsRef.current;
+        stopInertiaLoop();
+        velocityRef.current = 0;
+        const from = pokRotationRef.current;
+        const to = Math.min(Math.max(target, startScroll), endScroll);
+        const t0 = performance.now(), DURATION = 240;
+        function tick(now: number) {
+            const p = Math.min(1, (now - t0) / DURATION);
+            setRotation(from + (to - from) * (1 - Math.pow(1 - p, 3))); // ease out
+            inertiaFrameRef.current = p < 1 ? requestAnimationFrame(tick) : null;
+        }
+        inertiaFrameRef.current = requestAnimationFrame(tick);
+    }
+
+    useImperativeHandle(ref, () => ({ rotateTo, animateTo }));
 
     // ── press / hold, shared by the pointer, the context menu and the keyboard ──
     function cancelHold() {

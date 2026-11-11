@@ -10,6 +10,12 @@
 !.yarn/releases
 !.yarn/versions
 
+app/mock/
+components/mock/
+app/camera-debug/
+debug/
+camera-debug/
+
 # testing
 /coverage
 
@@ -55,6 +61,9 @@ certificates
 /scripts/
 .cache/
 /docs/
+
+# camera debug reports saved by /camera-debug in dev (they carry the phone's user agent and device ids)
+/debug/
 
 # agent files (AGENTS.md is re-created by `next dev`)
 AGENTS.md
