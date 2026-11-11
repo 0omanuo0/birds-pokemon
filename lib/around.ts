@@ -258,10 +258,12 @@ async function refreshRecent(cell: Cell) {
 export type AroundBird = { id: number; name: string; scientificName: string; family: string; seen: boolean; fresh: boolean; score: number; photo: string | null };
 // special = one day in seven the bird of the day comes from the rarer end of the area's list
 export type DayBird = AroundBird & { special: boolean };
+// trend = times more (arriving) or fewer (leaving) of it than the neighbouring month
+export type ShiftBird = AroundBird & { trend: number };
 export type Around =
     | {
         status: "ready"; cell: Cell; month: number; reportedRecently: number;
-        regulars: AroundBird[]; maybe: AroundBird[]; dayBird: DayBird | null; arriving: AroundBird[]; leaving: AroundBird[];
+        regulars: AroundBird[]; maybe: AroundBird[]; dayBird: DayBird | null; arriving: ShiftBird[]; leaving: ShiftBird[];
     }
     | { status: "filling" }
     | { status: "unsupported" };
@@ -323,12 +325,17 @@ function seasonShift(months: RankMonths, month: number) {
     for (const [id, s] of cur) {
         if (s < MIN_SHARE) continue;
         if (s >= 2 * (before.get(id) ?? fb)) arriving.push(id);
-        if ((after.get(id) ?? fa) <= s / 2) leaving.push(id);
+        // a bird that only spikes this month would be in both lists; arriving wins
+        else if ((after.get(id) ?? fa) <= s / 2) leaving.push(id);
     }
     const byGain = (ratio: (id: number) => number) => (a: number, b: number) => ratio(b) - ratio(a);
     arriving.sort(byGain(id => (cur.get(id) ?? 0) / Math.max(before.get(id) ?? fb, 1e-6)));
     leaving.sort(byGain(id => (cur.get(id) ?? 0) / Math.max(after.get(id) ?? fa, 1e-6)));
-    return { arriving: arriving.slice(0, 4), leaving: leaving.slice(0, 4) };
+    // trend = how many times more (arriving) or fewer (leaving) of it there are, for the "x3" shown on its slot
+    const trend = new Map<number, number>();
+    for (const id of arriving) trend.set(id, (cur.get(id) ?? 0) / Math.max(before.get(id) ?? fb, 1e-6));
+    for (const id of leaving) trend.set(id, (cur.get(id) ?? 0) / Math.max(after.get(id) ?? fa, 1e-6));
+    return { arriving: arriving.slice(0, 4), leaving: leaving.slice(0, 4), trend };
 }
 
 // Records the request (so popular cells get filled first) and says whether the cell is filled.
@@ -408,7 +415,8 @@ export async function around(lat: number, lng: number, email: string, date = new
     const fresher = (a: AroundBird, b: AroundBird) => b.score * (b.fresh ? 2 : 1) - a.score * (a.fresh ? 2 : 1);
     const maybe = [...rest.filter(b => !b.seen).sort(fresher), ...rest.filter(b => b.seen).sort(fresher)].slice(0, 4);
     const shift = seasonShift(months, weights[0].month);
-    const pick = (ids: number[]) => ids.map(id => byId.get(id)).filter((b): b is AroundBird => !!b);
+    const pick = (ids: number[]) => ids.map(id => ({ b: byId.get(id), trend: shift.trend.get(id) ?? 1 }))
+        .filter((x): x is { b: AroundBird; trend: number } => !!x.b).map(({ b, trend }): ShiftBird => ({ ...b, trend }));
     const dayBird = pickDayBird(wide, new Set(shift.arriving), localDay(date));
 
     const stale = !row.recent_at || Date.now() - new Date(row.recent_at).getTime() > EBIRD_TTL_MS;
