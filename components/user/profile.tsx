@@ -11,6 +11,7 @@ import DexNotice from "@/components/ui/dexNotice";
 import { DeviceHintsSetter } from "@/components/device/deviceContext";
 import { arrowBoxLeftSvg, homeSvg, logoutSvg, userSvg } from "@/components/imageSvg";
 import { formatSeenDate } from "@/components/pokedex/headCard";
+import { replayTutorial } from "@/components/pica-tutorial";
 import type { PageProgress, RecentSighting } from "@/lib/profile";
 import type { Stamp, StampId } from "@/lib/stamps";
 
@@ -262,6 +263,16 @@ export default function Profile(p: ProfileProps) {
                             </li>
                         ))}
                     </ul>
+
+                    {/* Pica's tour of the controls: forgets it was seen and plays it again on Home */}
+                    <SectionTitle>Guide</SectionTitle>
+                    <button
+                        type="button"
+                        onClick={replayTutorial}
+                        className="pixel-corners-4 w-full cursor-pointer touch-manipulation bg-neutral-700 px-3 py-2 text-left font-pokemon text-xs uppercase text-neutral-200 hover:bg-neutral-600 active:bg-neutral-600"
+                    >
+                        Replay Pica&apos;s tour ›
+                    </button>
                 </div>
 
                 <DexNotice

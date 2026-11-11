@@ -17,7 +17,9 @@ let booted = false;
 // no page holding it via useScreenHold) the lens flashes, the lid unlatches and slides up into the bezel.
 // Sits over the screen inset only; the bezel, legend, tabs and ball stay visible around it.
 export default function ScreenCover({ className }: { className: string }) {
-    const holds = useDevice()?.screenHolds ?? 0;
+    const device = useDevice();
+    const holds = device?.screenHolds ?? 0;
+    const markScreenReady = device?.markScreenReady;
     const [phase, setPhase] = useState<"shut" | "opening" | "gone">(() => (booted ? "gone" : "shut"));
     const [minDone, setMinDone] = useState(false);
     const [maxDone, setMaxDone] = useState(false);
@@ -37,6 +39,11 @@ export default function ScreenCover({ className }: { className: string }) {
             setPhase("opening");
         }
     }, [phase, minDone, maxDone, holds]);
+
+    // tell the rest of the app the lid is out of the way (also when it never showed)
+    useEffect(() => {
+        if (phase === "gone") markScreenReady?.();
+    }, [phase, markScreenReady]);
 
     if (phase === "gone") return null;
 

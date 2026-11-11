@@ -361,6 +361,7 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                     }
                 }}
                 ref={wheelRef}
+                data-tutorial="wheel"
                 style={{
                     boxShadow: "0px 0px 30px 0px rgba(0, 0, 0, 0.6)",
                     bottom: "0",
@@ -410,6 +411,7 @@ const PokeballRotation = forwardRef<PokeballRotationHandle, {
                     if (!holdFiredRef.current) fireHold();
                 }}
                 ref={pokeballCenterRef}
+                data-tutorial="ball"
                 className="absolute shadow-[0_0_30px_0_rgba(0,0,0,0.6)] left-1/2 transform -translate-x-1/2 -bottom-[43px] rounded-full bg-white bg-clip-padding border-8 border-[#2e2728] w-20 h-20 flex items-center justify-center touch-manipulation hover:cursor-pointer hover:bg-yellow-100 active:bg-yellow-100"
             >
                 <div className="bg-[#2e2728] w-10 h-10 rounded-full"></div>
