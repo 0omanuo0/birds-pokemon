@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { loadBirdDescription, peekBirdDescription } from "@/lib/birdDescription";
 import { loadBirdByScientificName, peekBirdByScientificName, type LookupBird } from "@/lib/birdLookup";
 import type { DetectedBird } from "@/components/identify/useBirdListener";
+import SafeImg from "@/components/safeImg";
 
 export function confidenceTone(confidence: number) {
     if (confidence >= 0.7) return "text-green-400";
@@ -30,6 +31,8 @@ export default function BirdRow({ bird }: { bird: DetectedBird }) {
 
     useEffect(() => {
         let alive = true;
+        // a new species must not keep showing the previous one's photo while (or if) its own lookup fails
+        setPhoto(peekBirdDescription(bird.scientificName)?.photo?.src ?? null);
         loadBirdByScientificName(bird.scientificName, bird.commonName)
             .then(found => { if (alive) setEntry(found); })
             .catch(() => { if (alive) setEntry(null); });
@@ -50,11 +53,7 @@ export default function BirdRow({ bird }: { bird: DetectedBird }) {
             }`}
         >
             <div className="pixel-corners-4 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden bg-neutral-800 font-pokemon text-lg text-neutral-500">
-                {photo ? (
-                    <img src={photo} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                ) : (
-                    "?"
-                )}
+                <SafeImg src={photo ?? undefined} fallback="?" alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
             </div>
             <div className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate font-pokemon text-sm text-neutral-100">{name}</span>

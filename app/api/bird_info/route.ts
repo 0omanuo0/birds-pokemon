@@ -1,4 +1,6 @@
 import { unstable_cache } from "next/cache";
+import { fetchRetry } from "@/lib/fetchJson";
+import { foldKey } from "@/lib/text";
 import { HTMLElement, Node, NodeType, parse } from "node-html-parser";
 
 export type DescriptionSection = { title: string; body: string };
@@ -39,11 +41,7 @@ const TAXONOMY_LABELS = ["Orden", "Familia", "Género", "Especie"];
 const IUCN_CODES: IucnCode[] = ["EX", "EW", "CR", "EN", "VU", "NT", "LC", "DD", "NE"];
 
 function normalizeId(id: string): string {
-    return id
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .replace(/\s+/g, "_");
+    return foldKey(id).replace(/\s+/g, "_");
 }
 
 function escapeHtml(text: string): string {
@@ -274,11 +272,13 @@ const EMPTY: BirdInfo = {
 
 async function fetchBirdInfo(scientificName: string): Promise<BirdInfo> {
     const title = encodeURIComponent(scientificName.trim().replace(/\s+/g, "_"));
-    const res = await fetch(`https://es.wikipedia.org/w/rest.php/v1/page/${title}/html`, {
+    const res = await fetchRetry(`https://es.wikipedia.org/w/rest.php/v1/page/${title}/html`, {
         // Wikimedia asks API clients to identify themselves
         headers: { "User-Agent": "BirdsPokedex/1.0 (manu365manu@gmail.com)" },
     });
-    if (!res.ok) return EMPTY;
+    // only a real 404 means "no article" (and may be cached); a 429/5xx/timeout throws so unstable_cache doesn't keep it for a week
+    if (res.status === 404) return EMPTY;
+    if (!res.ok) throw new Error(`Wikipedia ${res.status} for ${scientificName}`);
 
     const root = parse(await res.text());
     const sections = root.querySelectorAll("section[data-mw-section-id]");
@@ -329,18 +329,24 @@ async function fetchBirdInfo(scientificName: string): Promise<BirdInfo> {
 // Parsed result cached for a week per bird, shared by every visitor.
 // Bump the version whenever the response shape, TAB_KEYS or the limits above change,
 // or old cached results keep being served.
-const getBirdInfo = unstable_cache(fetchBirdInfo, ["bird-info", "v8"], { revalidate: WEEK });
+const getBirdInfo = unstable_cache(fetchBirdInfo, ["bird-info", "v9"], { revalidate: WEEK });
 
 export async function GET(req: Request) {
     const name = new URL(req.url).searchParams.get("name");
     if (!name) {
         return Response.json({ ...EMPTY, error: "Missing name" }, { status: 400 });
     }
+    // scientific names only: every distinct string is a cache entry and an upstream request
+    if (!/^[\p{L} .'-]{3,80}$/u.test(name)) {
+        return Response.json({ ...EMPTY, error: "Invalid name" }, { status: 400 });
+    }
 
     try {
         const info = await getBirdInfo(name);
+        // an article-less (empty) result is kept a day, not a week, in shared caches
+        const maxAge = info.summary || info.photo ? WEEK : 60 * 60 * 24;
         return Response.json(info, {
-            headers: { "Cache-Control": `public, s-maxage=${WEEK}, stale-while-revalidate=86400` },
+            headers: { "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=86400` },
         });
     } catch (error) {
         console.error("bird_info: failed to load description for", name, error);

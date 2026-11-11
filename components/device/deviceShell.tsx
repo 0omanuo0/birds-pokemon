@@ -5,6 +5,7 @@ import { ReactNode } from "react";
 import Noise from "@/components/turbulenceNoise";
 import { DeviceProvider } from "./deviceContext";
 import ScreenCover from "./screenCover";
+import PicaTutorial from "../pica-tutorial";
 
 type ScreenSize = "standard" | "tall";
 
@@ -52,6 +53,7 @@ export default function DeviceShell({ children }: { children: ReactNode }) {
                 <main
                     className={`relative grid h-full grid-cols-1 overflow-hidden bg-neutral-600 md:rounded-2xl ${SCREEN_ROWS[size]}`}
                 >
+                    <PicaTutorial />
                     {/* bezel: persistent layer behind the page's screen and the only part that animates. It's out of
                         the grid and holds nothing that reflows, so animating its height is cheap.
                         Notch inset padded so that strip is device-dark. */}

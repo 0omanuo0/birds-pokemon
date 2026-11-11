@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { stripAccents } from "@/lib/text";
 
 // The personal part of Today: your last trip (the latest day out with several photos, the seed of the future
 // Journal, where such a day is an "adventure" and other sightings sit between them as a timeline), your last
@@ -9,7 +10,7 @@ const TRIP_MIN_PHOTOS = 3;
 const TRIP_MIN_SIGHTINGS = 4;
 const TRIP_PHOTOS_SHOWN = 5;
 
-const plain = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "");
+const plain = stripAccents;
 
 export type TodayBird = { id: number; name: string; scientificName: string; family: string };
 export type Trip = {

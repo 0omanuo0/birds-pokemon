@@ -25,6 +25,9 @@ type DeviceContextValue = {
     // how many pages are keeping the boot cover shut (see useScreenHold)
     screenHolds: number;
     holdScreen: () => () => void;
+    // true once the boot cover is gone (or never showed); animations that shouldn't compete with it wait for this
+    screenReady: boolean;
+    markScreenReady: () => void;
 };
 
 const DeviceContext = createContext<DeviceContextValue | null>(null);
@@ -59,6 +62,12 @@ export function useScreenHold(active: boolean) {
     }, [active, holdScreen]);
 }
 
+// Whether the boot cover has finished opening. Starts false on the first load and flips once; outside the device
+// shell there's no cover, so it's true.
+export function useScreenReady() {
+    return useDevice()?.screenReady ?? true;
+}
+
 function isEditable(target: EventTarget | null) {
     return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 }
@@ -74,6 +83,9 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
         setScreenHolds(n => n + 1);
         return () => setScreenHolds(n => n - 1);
     }, []);
+
+    const [screenReady, setScreenReady] = useState(false);
+    const markScreenReady = useCallback(() => setScreenReady(true), []);
 
     const goBack = useCallback(() => {
         // a page opened directly (no history to go back to) falls back to Home
@@ -103,8 +115,8 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
     }, [goBack, pathname]);
 
     const value = useMemo<DeviceContextValue>(
-        () => ({ hints, setHints, goBack, holdCatch, screenHolds, holdScreen }),
-        [hints, setHints, goBack, holdCatch, screenHolds, holdScreen],
+        () => ({ hints, setHints, goBack, holdCatch, screenHolds, holdScreen, screenReady, markScreenReady }),
+        [hints, setHints, goBack, holdCatch, screenHolds, holdScreen, screenReady, markScreenReady],
     );
 
     return <DeviceContext.Provider value={value}>{children}</DeviceContext.Provider>;

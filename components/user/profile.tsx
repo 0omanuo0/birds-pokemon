@@ -8,9 +8,11 @@ import LateralRight from "@/components/nav/lateralRight";
 import PokeballRotation, { PokeballRotationHandle } from "@/components/pokeballRotation";
 import DeviceScreen, { DeviceControls } from "@/components/device/deviceScreen";
 import DexNotice from "@/components/ui/dexNotice";
+import SafeImg from "@/components/safeImg";
 import { DeviceHintsSetter } from "@/components/device/deviceContext";
 import { arrowBoxLeftSvg, homeSvg, logoutSvg, userSvg } from "@/components/imageSvg";
-import { formatSeenDate } from "@/components/pokedex/headCard";
+import { formatSeenDate } from "@/lib/format";
+import { replayTutorial } from "@/components/pica-tutorial";
 import type { PageProgress, RecentSighting } from "@/lib/profile";
 import type { Stamp, StampId } from "@/lib/stamps";
 
@@ -177,7 +179,11 @@ export default function Profile(p: ProfileProps) {
                     <div className="flex items-stretch gap-3">
                         <div className="pixel-corners-6-border--wrapper shrink-0" style={{ "--border-color": "#f90" } as React.CSSProperties}>
                             {p.image ? (
-                                <img src={p.image} alt="" className="pixel-corners-6-border h-20 w-20 object-cover" />
+                                // Google answers 403 to hotlinks that carry a referrer
+                                <SafeImg
+                                    src={p.image} referrerPolicy="no-referrer" alt="" className="pixel-corners-6-border h-20 w-20 object-cover"
+                                    fallback={<div className="pixel-corners-6-border flex h-20 w-20 items-center justify-center bg-neutral-700 p-5 text-neutral-400">{userSvg}</div>}
+                                />
                             ) : (
                                 <div className="pixel-corners-6-border flex h-20 w-20 items-center justify-center bg-neutral-700 p-5 text-neutral-400">{userSvg}</div>
                             )}
@@ -211,7 +217,7 @@ export default function Profile(p: ProfileProps) {
                                             <div className="pixel-corners-4 bg-white p-1 pb-1.5">
                                                 <div className="aspect-square w-full overflow-hidden bg-neutral-700">
                                                     {s.photoUrl ? (
-                                                        <img src={s.photoUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                                                        <SafeImg src={s.photoUrl} fallback={<div className="flex h-full w-full items-center justify-center font-pokemon text-xs uppercase text-neutral-400">No photo</div>} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                                     ) : (
                                                         <div className="flex h-full w-full items-center justify-center font-pokemon text-xs uppercase text-neutral-400">No photo</div>
                                                     )}
@@ -264,6 +270,16 @@ export default function Profile(p: ProfileProps) {
                             </li>
                         ))}
                     </ul>
+
+                    {/* Pica's tour of the controls: forgets it was seen and plays it again on Home */}
+                    <SectionTitle>Guide</SectionTitle>
+                    <button
+                        type="button"
+                        onClick={replayTutorial}
+                        className="pixel-corners-4 w-full cursor-pointer touch-manipulation bg-neutral-700 px-3 py-2 text-left font-pokemon text-xs uppercase text-neutral-200 hover:bg-neutral-600 active:bg-neutral-600"
+                    >
+                        Replay Pica&apos;s tour ›
+                    </button>
                 </div>
 
                 <DexNotice

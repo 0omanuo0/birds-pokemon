@@ -105,9 +105,14 @@ export default function PhotoWindow({ src, locked = false, tile, fallback, pendi
     useEffect(() => {
         if (!src || fromAtlas) return;
         let cancelled = false;
+        // a src that failed before (A → B → A) gets a fresh chance
+        setFailed(null);
         // CORS first so the grade and glow can be measured; plain load if the host doesn't allow it
-        loadImage(src, true)
-            .catch(() => loadImage(src, false))
+        const attempt = () => loadImage(src, true).catch(() => loadImage(src, false));
+        // one retry after a pause: hotlinked hosts (Wikimedia) answer 429 to bursts, which heals within a second or two
+        const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+        attempt()
+            .catch(() => delay(1500).then(() => { if (cancelled) throw new Error("cancelled"); return attempt(); }))
             .then(image => {
                 if (cancelled) return;
                 const a = analyse(image);
@@ -168,7 +173,8 @@ export default function PhotoWindow({ src, locked = false, tile, fallback, pendi
                         <img
                             src={src!}
                             alt={alt}
-                            onError={() => setFailed(src!)}
+                            // before ready the probe above is still retrying, so only a failure after it succeeded counts
+                            onError={() => { if (ready) setFailed(src!); }}
                             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ${ready ? "opacity-100" : "opacity-0"}`}
                             style={grade ? { filter: `brightness(${grade.br}) saturate(${grade.sat}) contrast(${grade.con})` } : undefined}
                         />

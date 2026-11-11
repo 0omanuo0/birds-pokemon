@@ -48,7 +48,7 @@ export default function Add() {
                                                 <button className="absolute bottom-12 left-1 w-10 h-8 px-2 py-1 z-[99] bg-red-400 border-2 border-neutral-700/70">{ImageAddSvg}</button>
                                             </div>
                                             <div className="flex flex-col gap-2 items-center justify-center h-full p-2">
-                                                <img src={"icons/pokeball.png"} className="h-[37px] w-10 saturate-50" style={{ imageRendering: "pixelated" }}/>
+                                                <img src="/icons/pokeball.png" className="h-[37px] w-10 saturate-50" style={{ imageRendering: "pixelated" }}/>
                                                 <span className="h-10 w-10 flex font-pokemon relative">
                                                     {PinSvg}
                                                     <span className="text-red-400 absolute -bottom-2 right-0 text-2xl">x</span>

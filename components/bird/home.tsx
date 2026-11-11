@@ -9,11 +9,13 @@ import type { Bird, Sighting } from "@/lib/types";
 import type { BirdInfo } from "@/app/api/bird_info/route";
 import { EMPTY_BIRD_INFO, loadBirdDescription, peekBirdDescription } from "@/lib/birdDescription";
 import { useEffect, useMemo, useRef, useState } from "react";
-import HeadCard, { formatSeenDate } from "../pokedex/headCard";
+import HeadCard from "../pokedex/headCard";
+import { formatSeenDate } from "@/lib/format";
 import { useRouter } from "next/navigation";
 import { deleteSighting } from "@/lib/actions";
 import DexNotice from "@/components/ui/dexNotice";
 import AddSightingsDialog from "./addSightingsDialog";
+import SafeImg from "@/components/safeImg";
 import BirdDescription from "./description";
 
 
@@ -245,8 +247,9 @@ export default function BirdHome({ bird, sightings }: { bird: Bird, sightings: S
                                                 No photo
                                             </div>
                                         ) : sighting.photo_url ?
-                                            <img
+                                            <SafeImg
                                                 src={sighting.photo_url}
+                                                fallback={<div className="flex aspect-square w-[200px] flex-col items-center justify-center bg-neutral-800 text-neutral-500"><span className="text-2xl">?</span>No photo</div>}
                                                 alt={"" + sighting.sighting_id || "Unknown Bird"}
                                                 className={"aspect-square object-cover shadow-md" + (selectedImg == index ? " pixel-corners-6-border" : "")}
                                                 width={200}

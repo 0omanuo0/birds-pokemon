@@ -1,5 +1,6 @@
 // Server-only: needs EBIRD_API_KEY, never call from the client.
 import { unstable_cache } from "next/cache";
+import { fetchRetry } from "@/lib/fetchJson";
 
 const EBIRD_API = "https://api.ebird.org/v2";
 const DAY = 60 * 60 * 24;
@@ -23,9 +24,9 @@ export type EbirdSighting = {
 // once a year, so it's fetched and cached whole instead of hitting eBird per bird page view.
 const getTaxonomyMap = unstable_cache(
     async (): Promise<Record<string, string>> => {
-        const res = await fetch(`${EBIRD_API}/ref/taxonomy/ebird?cat=species&fmt=json`, {
+        const res = await fetchRetry(`${EBIRD_API}/ref/taxonomy/ebird?cat=species&fmt=json`, {
             headers: { "X-eBirdApiToken": process.env.EBIRD_API_KEY || "" },
-        });
+        }, { timeout: 20000 });
         if (!res.ok) throw new Error(`eBird taxonomy fetch failed: ${res.status}`);
         const rows: { sciName: string; speciesCode: string }[] = await res.json();
         const map: Record<string, string> = {};
@@ -56,11 +57,13 @@ export async function ebirdRecentNearby(
         const speciesCode = code || await ebirdSpeciesCode(scientificName);
         if (!speciesCode) return [];
 
-        const url = `${EBIRD_API}/data/obs/geo/recent/${speciesCode}?lat=${lat}&lng=${lng}&dist=${dist}&back=${back}`;
-        const res = await fetch(url, {
+        // rounded (~1 km): every pan of the map used to be a distinct URL, so the data cache never hit and the
+        // hourly eBird quota went on near-identical queries
+        const url = `${EBIRD_API}/data/obs/geo/recent/${speciesCode}?lat=${lat.toFixed(2)}&lng=${lng.toFixed(2)}&dist=${Math.ceil(dist / 5) * 5}&back=${back}`;
+        const res = await fetchRetry(url, {
             headers: { "X-eBirdApiToken": process.env.EBIRD_API_KEY || "" },
             next: { revalidate: 60 * 15 }, // eBird gets new checklists constantly; 15min is fresh enough here
-        });
+        }, { timeout: 8000 });
         if (!res.ok) return [];
 
         const rows = await res.json();
