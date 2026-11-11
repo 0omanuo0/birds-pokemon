@@ -4,8 +4,8 @@
 // worker, with a live spectrogram drawn from the same ring. No audio leaves the device and nothing
 // is written to the dex — this page only shows what it hears.
 
-import { useRouter } from "next/navigation";
-import { CameraSvg, homeSvg, trashSvg } from "@/components/imageSvg";
+import { homeSvg, trashSvg } from "@/components/imageSvg";
+import ModeSwitch from "@/components/identify/modeSwitch";
 import LateralLeft from "@/components/nav/lateralLeft";
 import LateralRight from "@/components/nav/lateralRight";
 import PokeballRotation from "@/components/pokeballRotation";
@@ -45,7 +45,6 @@ function statusLine(listener: ReturnType<typeof useBirdListener>): string {
 }
 
 export default function IdentifySound() {
-    const router = useRouter();
     const listener = useBirdListener();
     const { status, predictions, detected } = listener;
 
@@ -57,6 +56,17 @@ export default function IdentifySound() {
         <>
             <DeviceScreen className="">
                 <div className="flex h-full min-h-0 flex-col gap-3 bg-neutral-900 px-3 pb-3 pt-3 text-neutral-100">
+                    {/* the two ways to identify, as the same switch the photo page has: look or listen */}
+                    <div className="flex shrink-0 items-center justify-between">
+                        <ModeSwitch mode="sound" />
+                        {status === "listening" && (
+                            <span className="flex items-center gap-1 font-pokemon text-[11px] uppercase text-red-400">
+                                <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" aria-hidden />
+                                Rec
+                            </span>
+                        )}
+                    </div>
+
                     {/* ── spectrogram (fixed, does not scroll) ── */}
                     <div className="pixel-corners-4 shrink-0 border-y-2 border-y-yellow-400 bg-black px-3 py-3">
                         <div className="mb-2 flex items-center justify-between">
@@ -67,12 +77,6 @@ export default function IdentifySound() {
                             >
                                 {statusLine(listener)}
                             </span>
-                            {status === "listening" && (
-                                <span className="flex items-center gap-1 font-pokemon text-[11px] uppercase text-red-400">
-                                    <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" aria-hidden />
-                                    Rec
-                                </span>
-                            )}
                         </div>
 
                         <Spectrogram
@@ -125,15 +129,6 @@ export default function IdentifySound() {
                             <span className="font-pokemon text-[11px] uppercase tracking-wide text-neutral-400">
                                 Birds detected
                             </span>
-                            {/* switch to the camera flow — the two identify modes toggle between each other.
-                                In the header rather than floating over the list, which it would cover. */}
-                            <button
-                                onClick={() => router.push("/identify")}
-                                aria-label="Identify by photo"
-                                className="h-7 w-7 shrink-0 cursor-pointer border-2 border-neutral-700/70 bg-red-400 p-[3px]"
-                            >
-                                {CameraSvg}
-                            </button>
                         </div>
                         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pb-1">
                             {detected.length === 0 ? (

@@ -36,7 +36,7 @@ const readLast = (): { lat: number; lng: number } | null => {
 
 // The last answer for the last place, shown at once while the fresh one is fetched. Only used for the same place,
 // and only in the current shape (the key changed when the bird of the day moved to the server).
-const CACHE_KEY = "birds.aroundCache.v2";
+const CACHE_KEY = "birds.aroundCache.v3";
 const readCache = (at: { lat: number; lng: number }): Ready | null => {
     try {
         const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
@@ -153,10 +153,7 @@ export default function AroundYou() {
                     </>
                 )}
                 {(arriving.length > 0 || leaving.length > 0) && (
-                    <>
-                        <Heading>{lang === "es" ? "La temporada" : "The season"}</Heading>
-                        <SeasonShift arriving={arriving} leaving={leaving} lang={lang} />
-                    </>
+                    <SeasonShift arriving={arriving} leaving={leaving} month={month} lang={lang} />
                 )}
                 {personal}
             </>

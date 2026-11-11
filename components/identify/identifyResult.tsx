@@ -10,6 +10,7 @@ import { loadBirdDescription, peekBirdDescription } from "@/lib/birdDescription"
 import { REGION_NAMES, regionAt, type RegionCode } from "@/lib/regions";
 import { ClockSvg, PinSvg } from "@/components/imageSvg";
 import { formatSeenDate } from "@/lib/format";
+import { resizeToJpeg } from "@/lib/resizeImage";
 import IucnScale from "@/components/bird/iucnScale";
 import DexNotice from "@/components/ui/dexNotice";
 import SafeImg from "@/components/safeImg";
@@ -265,7 +266,8 @@ export default function IdentifyResult({ candidates, photoUrl, image, userId, on
             }
 
             const formData = new FormData();
-            formData.append("image", image);
+            // a full-resolution still can be 10+ MB; the server keeps at most 2048px anyway, so send 3072px at most
+            formData.append("image", image.size > 3 * 1024 * 1024 ? await resizeToJpeg(image, 3072, 0.92) : image);
             formData.append("birdId", selected.bird.id.toString());
             formData.append("imageId", imageId);
             const upload = await fetch("/api/saveImage", { method: "POST", body: formData });

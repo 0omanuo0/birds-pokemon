@@ -25,6 +25,7 @@ const BEZEL_HEIGHT: Record<ScreenSize, string> = {
 
 function sizeFor(pathname: string): ScreenSize | null {
     if (pathname === "/" || pathname === "/pokedex" || pathname === "/identify" || pathname === "/identify-sound"  || pathname === "/add") return "standard";
+    if (pathname.startsWith("/mock/")) return "standard"; // throwaway home redesign mockups, deleted after review
     if (pathname.startsWith("/bird/") || pathname === "/user") return "tall";
     return null;
 }
